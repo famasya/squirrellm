@@ -1,4 +1,5 @@
-import { Home, Plus } from "lucide-react";
+import { NavLink } from "@remix-run/react";
+import { Home, Plus, Settings } from "lucide-react";
 import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "~/components/ui/sidebar";
 
 const items = [
@@ -18,18 +19,31 @@ export default function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton>
-                  <Plus />
-                  <span className="w-full">
-                    New Chat
-                  </span>
+                <SidebarMenuButton asChild>
+                  <NavLink to="/">
+                    <Plus />
+                    <span className="w-full">
+                      New Chat
+                    </span>
+                  </NavLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter />
+      <SidebarFooter>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton>
+              <Settings />
+              <span className="w-full">
+                Settings
+              </span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
     </Sidebar>
   </>
 }

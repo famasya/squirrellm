@@ -17,6 +17,7 @@ interface SearchableSelectProps {
   options: Option[]
   placeholder?: string
   emptyMessage?: string
+  value?: string
   onChange?: (value: string) => void
   disabled?: boolean
 }
@@ -25,11 +26,12 @@ export function SearchableSelect({
   options,
   placeholder = "Select an option",
   emptyMessage = "No results found.",
+  value,
   onChange,
   ...props
 }: SearchableSelectProps) {
   const [open, setOpen] = React.useState(false)
-  const [value, setValue] = React.useState("")
+  const [selectedValue, setSelectedValue] = React.useState(value)
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -50,14 +52,14 @@ export function SearchableSelect({
                   key={option.value}
                   value={option.value}
                   onSelect={(currentValue: string) => {
-                    setValue(currentValue === value ? "" : currentValue)
-                    onChange?.(currentValue === value ? "" : currentValue)
+                    setSelectedValue(currentValue)
+                    onChange?.(currentValue)
                     setOpen(false)
                   }}
                   className="w-full flex items-center justify-between"
                 >
                   <span>{option.label}</span>
-                  <Check className={cn("h-4 w-4 shrink-0", value === option.value ? "opacity-100" : "opacity-0")} />
+                  <Check className={cn("h-4 w-4 shrink-0", selectedValue === option.value ? "opacity-100" : "opacity-0")} />
                 </CommandItem>
               ))}
             </CommandGroup>

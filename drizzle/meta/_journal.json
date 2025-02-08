@@ -1,0 +1,48 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1739031238207,
+      "tag": "0000_gifted_rafael_vega",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1739032068983,
+      "tag": "0001_needy_lady_ursula",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1739035743063,
+      "tag": "0002_long_ultron",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1739036951790,
+      "tag": "0003_flippant_shadow_king",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1739039267586,
+      "tag": "0004_superb_morlocks",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1739039668980,
+      "tag": "0005_nervous_johnny_blaze",
+      "breakpoints": true
+    }
+  ]
+}

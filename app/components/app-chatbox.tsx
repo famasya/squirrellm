@@ -7,14 +7,15 @@ import { SearchableSelect } from "~/components/ui/searchable-select";
 import useChatStore from "~/lib/stores";
 import { cn } from "~/lib/utils";
 
-export default function AppChatbox() {
-  const { messages, input, isLoading, handleInputChange, handleSubmit } = useChat();
+export default function AppChatbox({ initialMessages }: { initialMessages: { id: string; content: string; role: string }[] }) {
+  const { messages, input, isLoading, handleInputChange, handleSubmit, append } = useChat();
   const { setMessages } = useChatStore();
 
   const handleSend = () => {
+    const messagesData = messages.map((message) => ({ ...message, synced: false }));
     setMessages([
-      ...messages,
-      { id: Date.now().toString(), content: input, role: "user" },
+      ...messagesData,
+      { id: Date.now().toString(), content: input, role: "user", synced: false },
     ]);
     handleSubmit();
   };
@@ -27,8 +28,19 @@ export default function AppChatbox() {
   };
 
   useEffect(() => {
-    setMessages(messages);
+    setMessages(messages.map((message) => ({ ...message, synced: false })));
   }, [messages, setMessages]);
+
+  // handle initial messages
+  useEffect(() => {
+    // only set input if there's only 1 message
+    if (initialMessages.length === 1) {
+      append({
+        content: initialMessages[0].content,
+        role: "user",
+      });
+    }
+  }, [initialMessages, append]);
 
   return (
     <div className={cn("w-full flex flex-col p-2")}>

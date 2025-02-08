@@ -1,23 +1,39 @@
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import type { ActionFunctionArgs } from "@remix-run/node";
+import { TwitterSnowflake } from "@sapphire/snowflake";
 import { streamText } from "ai";
-import { any, object, parse } from "valibot";
+import { db } from "~/lib/db";
+import { messages as messagesTable } from "~/lib/db.schema";
 
-export const chatApiSchema = object({
-  messages: any(),
-});
 export async function action({ request }: ActionFunctionArgs) {
   try {
-    const body = await request.json();
-    const { messages } = parse(chatApiSchema, body);
+    const { messages, sessionId, model } = await request.json();
+    if (!sessionId || !model) {
+      throw new Error("Session id and model are required");
+    }
 
     const openrouter = createOpenRouter({
       apiKey: process.env.OPENROUTER_API_KEY,
     });
 
     const result = streamText({
-      model: openrouter("google/gemini-2.0-flash-lite-preview-02-05:free"),
+      model: openrouter(model),
       messages,
+      onFinish: (response) => {
+        // once stream is closed, store the messages        
+        db.insert(messagesTable).values({
+          id: TwitterSnowflake.generate().toString(),
+          role: "assistant",
+          createdAt: new Date().getTime(),
+          content: response.text,
+          model: model,
+          promptToken: response.usage.promptTokens,
+          completionToken: response.usage.completionTokens,
+          totalToken: response.usage.totalTokens,
+          reasoning: response.reasoning,
+          sessionId: sessionId
+        })
+      }
     });
 
     return result.toDataStreamResponse();

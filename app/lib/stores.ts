@@ -1,9 +1,13 @@
 import type { Message } from 'ai/react';
 import { create } from 'zustand';
 
+type MessageData = Message & {
+  synced: boolean;
+}
+
 type ChatStore = {
-  messages: Message[];
-  setMessages: (messages: Message[]) => void;
+  messages: MessageData[];
+  setMessages: (messages: MessageData[]) => void;
 }
 const useChatStore = create<ChatStore>((set) => ({
   messages: [],
