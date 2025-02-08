@@ -1,6 +1,5 @@
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import type { ActionFunctionArgs } from "@remix-run/node";
-import { TwitterSnowflake } from "@sapphire/snowflake";
 import { streamText } from "ai";
 import { db } from "~/lib/db";
 import { messages as messagesTable } from "~/lib/db.schema";
@@ -19,10 +18,10 @@ export async function action({ request }: ActionFunctionArgs) {
 		const result = streamText({
 			model: openrouter(model),
 			messages,
-			onFinish: (response) => {
+			onFinish: async (response) => {
 				// once stream is closed, store the messages
-				db.insert(messagesTable).values({
-					id: TwitterSnowflake.generate().toString(),
+				await db.insert(messagesTable).values({
+					id: response.response.id,
 					role: "assistant",
 					createdAt: new Date().getTime(),
 					content: response.text,
@@ -32,7 +31,7 @@ export async function action({ request }: ActionFunctionArgs) {
 					totalToken: response.usage.totalTokens,
 					reasoning: response.reasoning,
 					sessionId: sessionId,
-				});
+				}).onConflictDoNothing()
 			},
 		});
 

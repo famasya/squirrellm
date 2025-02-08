@@ -7,88 +7,113 @@ import { SearchableSelect } from "~/components/ui/searchable-select";
 import useChatStore from "~/lib/stores";
 import { cn } from "~/lib/utils";
 
+type Props = {
+  initialMessages: { id: string; content: string; role: string; createdAt: Date }[];
+  model: string;
+  availableModels: { id: string; name: string }[];
+  sessionId: string;
+};
+
 export default function AppChatbox({
-	initialMessages,
-}: { initialMessages: { id: string; content: string; role: string }[] }) {
-	const {
-		messages,
-		input,
-		isLoading,
-		handleInputChange,
-		handleSubmit,
-		append,
-	} = useChat();
-	const { setMessages } = useChatStore();
+  initialMessages,
+  model,
+  availableModels,
+  sessionId,
+}: Props) {
+  const {
+    messages,
+    input,
+    isLoading,
+    handleInputChange,
+    handleSubmit,
+    append,
+    setMessages: setChatMessages
+  } = useChat({
+    body: {
+      model: model,
+      sessionId: sessionId,
+    }
+  });
+  const { setMessages } = useChatStore();
 
-	const handleSend = () => {
-		const messagesData = messages.map((message) => ({
-			...message,
-			synced: false,
-		}));
-		setMessages([
-			...messagesData,
-			{
-				id: Date.now().toString(),
-				content: input,
-				role: "user",
-				synced: false,
-			},
-		]);
-		handleSubmit();
-	};
+  const handleSend = () => {
+    setMessages([
+      ...messages,
+      {
+        id: Date.now().toString(),
+        content: input,
+        role: "user",
+      },
+    ]);
+    handleSubmit();
+  };
 
-	const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
-		if (event.key === "Enter" && !event.shiftKey) {
-			event.preventDefault();
-			handleSend();
-		}
-	};
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      handleSend();
+    }
+  };
 
-	useEffect(() => {
-		setMessages(messages.map((message) => ({ ...message, synced: false })));
-	}, [messages, setMessages]);
+  useEffect(() => {
+    // store messages to store
+    setMessages(messages.map((message) => ({ ...message })));
+  }, [messages, setMessages]);
 
-	// handle initial messages
-	useEffect(() => {
-		// only set input if there's only 1 message
-		if (initialMessages.length === 1) {
-			append({
-				content: initialMessages[0].content,
-				role: "user",
-			});
-		}
-	}, [initialMessages, append]);
 
-	return (
-		<div className={cn("w-full flex flex-col p-2")}>
-			<div className="flex h-full w-full p-2 gap-2">
-				<AutosizeTextarea
-					className="flex-1"
-					value={input}
-					onKeyDown={handleKeyDown}
-					placeholder={"Ask me anything... (Shift + Enter to send)"}
-					onChange={handleInputChange}
-				/>
-				<Button
-					disabled={isLoading}
-					onClick={handleSend}
-					size={"icon"}
-					className="flex items-center justify-center"
-				>
-					{isLoading ? <Loader2 className="animate-spin" /> : <Send />}
-				</Button>
-			</div>
-			<div className="px-2 grid grid-cols-4">
-				<SearchableSelect
-					options={[
-						{
-							label: "gemini-2.0-flash-lite-preview-02-05:free",
-							value: "gemini-2.0-flash-lite-preview-02-05:free",
-						},
-					]}
-					placeholder="Switch Model (m)"
-				/>
-			</div>
-		</div>
-	);
+  // handle initial messages
+  useEffect(() => {
+    if (initialMessages.length === 1) {
+      // auto send the first message
+      append({
+        content: initialMessages[0].content,
+        role: "user",
+      });
+    } else {
+      // otherwise, set the messages and also convert them to chat messages
+      setMessages(initialMessages.map((message) => ({
+        content: message.content,
+        role: message.role as "assistant" | "user",
+        id: message.id
+      })));
+      setChatMessages(initialMessages.map((message) => ({
+        content: message.content,
+        role: message.role as "assistant" | "user",
+        id: message.id,
+        createdAt: message.createdAt
+      })))
+    }
+  }, [initialMessages, append, setMessages, setChatMessages]);
+
+  return (
+    <div className={cn("w-full flex flex-col p-2")}>
+      <div className="flex h-full w-full p-2 gap-2">
+        <AutosizeTextarea
+          className="flex-1"
+          value={input}
+          onKeyDown={handleKeyDown}
+          placeholder={"Ask me anything... (Shift + Enter to send)"}
+          onChange={handleInputChange}
+        />
+        <Button
+          disabled={isLoading}
+          onClick={handleSend}
+          size={"icon"}
+          className="flex items-center justify-center"
+        >
+          {isLoading ? <Loader2 className="animate-spin" /> : <Send />}
+        </Button>
+      </div>
+      <div className="mt-2 mb-4 grid grid-cols-4">
+        <SearchableSelect
+          value={model}
+          options={availableModels.map((model) => ({
+            value: model.id,
+            label: model.name,
+          }))}
+          placeholder="Select a model"
+        />
+      </div>
+    </div>
+  );
 }

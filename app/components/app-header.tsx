@@ -12,7 +12,7 @@ export default function AppHeader() {
 	};
 
 	return (
-		<div className="mt-1 border-b-[1px] pb-1 pl-2 w-full dark:bg-zinc-900">
+		<div className="mt-1 border-b-[1px] pb-1 pl-2 w-full dark:bg-zinc-900/10 dark:backdrop-blur-sm">
 			<div className="flex flex-row items-center h-full gap-2">
 				<Button size={"icon"} variant={"ghost"} onClick={toggleSidebar}>
 					<SidebarIcon />
