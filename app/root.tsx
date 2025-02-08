@@ -1,6 +1,10 @@
 import { ClerkApp, RedirectToSignIn, SignedIn, SignedOut } from "@clerk/remix";
 import { rootAuthLoader } from "@clerk/remix/ssr.server";
-import type { LinksFunction, LoaderFunction, MetaFunction } from "@remix-run/node";
+import type {
+	LinksFunction,
+	LoaderFunction,
+	MetaFunction,
+} from "@remix-run/node";
 import {
 	Links,
 	Meta,
@@ -25,11 +29,11 @@ export const links: LinksFunction = () => [
 		href: "https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap",
 	},
 ];
-export const meta: MetaFunction = () => ([
+export const meta: MetaFunction = () => [
 	{
 		title: "OpenRouter Chat",
-	}
-])
+	},
+];
 
 export const loader: LoaderFunction = (args) => rootAuthLoader(args);
 
@@ -52,22 +56,24 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 function App() {
-	return <>
-		<SignedIn>
-			<SidebarProvider className="flex h-screen">
-				<AppSidebar />
-				<div className="flex flex-col flex-1">
-					<AppHeader />
-					<div className="px-3 py-2 flex-1 min-h-0 dark:bg-zinc-900 overflow-auto">
-						<Outlet />
+	return (
+		<>
+			<SignedIn>
+				<SidebarProvider className="flex h-screen">
+					<AppSidebar />
+					<div className="flex flex-col flex-1">
+						<AppHeader />
+						<div className="px-3 py-2 flex-1 min-h-0 dark:bg-zinc-900 overflow-auto">
+							<Outlet />
+						</div>
 					</div>
-				</div>
-			</SidebarProvider>
-		</SignedIn>
-		<SignedOut>
-			<RedirectToSignIn />
-		</SignedOut>
-	</>;
+				</SidebarProvider>
+			</SignedIn>
+			<SignedOut>
+				<RedirectToSignIn />
+			</SignedOut>
+		</>
+	);
 }
 
 export default ClerkApp(App);
