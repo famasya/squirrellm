@@ -15,6 +15,7 @@ import {
 import AppHeader from "./components/app-header";
 import AppSidebar from "./components/app-sidebar";
 import { SidebarProvider } from "./components/ui/sidebar";
+import { Toaster } from "./components/ui/sonner";
 import { TooltipProvider } from "./components/ui/tooltip";
 import "./tailwind.css";
 
@@ -65,6 +66,7 @@ function App() {
 					<div className="flex flex-col flex-1">
 						<AppHeader />
 						<div className="px-3 flex-1 min-h-0 dark:bg-zinc-900 overflow-auto">
+							<Toaster />
 							<TooltipProvider delayDuration={0}>
 								<Outlet />
 							</TooltipProvider>

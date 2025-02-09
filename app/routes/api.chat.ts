@@ -16,16 +16,19 @@ export async function action({ request }: ActionFunctionArgs) {
 		});
 
 		// add user message to messages (from latest message)
-		console.log(messages, 321)
+		console.log(messages, 321);
 		const message = messages[messages.length - 1] as Message;
-		await db.insert(messagesTable).values({
-			id: message.id,
-			role: "user",
-			createdAt: new Date().getTime(),
-			content: message.content,
-			model: model,
-			sessionId: sessionId,
-		}).onConflictDoNothing();
+		await db
+			.insert(messagesTable)
+			.values({
+				id: message.id,
+				role: "user",
+				createdAt: new Date().getTime(),
+				content: message.content,
+				model: model,
+				sessionId: sessionId,
+			})
+			.onConflictDoNothing();
 
 		const result = streamText({
 			model: openrouter(model),

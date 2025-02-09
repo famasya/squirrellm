@@ -19,7 +19,7 @@ export const messages = s.sqliteTable("messages", {
 	sessionId: s
 		.text()
 		.notNull()
-		.references(() => sessions.id),
+		.references(() => sessions.id, { onDelete: "cascade" }),
 });
 
 export const models = s.sqliteTable("models", {
