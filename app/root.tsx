@@ -15,6 +15,7 @@ import {
 import AppHeader from "./components/app-header";
 import AppSidebar from "./components/app-sidebar";
 import { SidebarProvider } from "./components/ui/sidebar";
+import { TooltipProvider } from "./components/ui/tooltip";
 import "./tailwind.css";
 
 export const links: LinksFunction = () => [
@@ -63,8 +64,10 @@ function App() {
 					<AppSidebar />
 					<div className="flex flex-col flex-1">
 						<AppHeader />
-						<div className="px-3 py-2 flex-1 min-h-0 dark:bg-zinc-900 overflow-auto">
-							<Outlet />
+						<div className="px-3 flex-1 min-h-0 dark:bg-zinc-900 overflow-auto">
+							<TooltipProvider delayDuration={0}>
+								<Outlet />
+							</TooltipProvider>
 						</div>
 					</div>
 				</SidebarProvider>

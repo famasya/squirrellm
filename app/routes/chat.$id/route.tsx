@@ -27,9 +27,9 @@ export default function AppLayout() {
   const { messages, model, sessionId, availableModels } = useLoaderData<typeof loader>();
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="px-3 py-2 flex-1">
-        <ScrollArea className="h-full overflow-y-auto mr-2">
+    <div className="w-full flex flex-col h-full overflow-hidden">
+      <div className="px-3 pt-2 flex-1 overflow-auto">
+        <ScrollArea className="h-full overflow-y-auto pr-4">
           <Outlet />
         </ScrollArea>
       </div>

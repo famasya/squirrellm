@@ -1,7 +1,7 @@
 import type { ActionFunctionArgs } from "@remix-run/node";
 import { Form, redirect, useLoaderData, useNavigation } from "@remix-run/react";
 import { TwitterSnowflake } from "@sapphire/snowflake";
-import { Loader2, Send } from "lucide-react";
+import { Loader2, Send, Squirrel } from "lucide-react";
 import { useState } from "react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -56,7 +56,7 @@ export default function AppHome() {
   return (
     <div className="flex h-full items-center justify-center">
       <div className="w-full max-w-[800px] space-y-2 flex flex-col text-center">
-        <h1 className="text-xl font-semibold mb-2">How may I help you?</h1>
+        <h1 className="text-xl font-semibold mb-2 flex items-center justify-center gap-4"><Squirrel />How may I help you?</h1>
         <Form method="post">
           <Input
             placeholder="Ask me anything..."
@@ -64,7 +64,7 @@ export default function AppHome() {
             name="message"
             disabled={navigation.state === "submitting" || models.length === 0}
             onChange={(e) => setMessage(e.target.value)}
-            className="h-12 shadow-lg dark:bg-zinc-800"
+            className="h-12 rounded-xl shadow-lg dark:bg-zinc-800"
             autoFocus
           />
 
