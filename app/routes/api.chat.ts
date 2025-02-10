@@ -1,6 +1,11 @@
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import type { ActionFunctionArgs } from "@remix-run/node";
-import { type Message, smoothStream, streamText } from "ai";
+import {
+	type Message,
+	createDataStreamResponse,
+	smoothStream,
+	streamText,
+} from "ai";
 import { db } from "~/lib/db";
 import { messages as messagesTable } from "~/lib/db.schema";
 
@@ -35,38 +40,54 @@ export async function action({ request }: ActionFunctionArgs) {
 		// get instruction from header
 		const headers = new Headers(request.headers);
 		const instruction = headers.get("model-instruction");
-		const result = streamText({
-			model: openrouter(model),
-			messages,
-			...(instruction && { system: instruction }),
-			onFinish: async (response) => {
-				// once stream is closed, store the messages
-				if (response.finishReason === "stop") {
-					await db
-						.insert(messagesTable)
-						.values({
-							id: response.response.id,
-							role: "assistant",
-							createdAt: new Date().getTime(),
-							content: response.text,
-							model: model,
-							promptToken: response.usage.promptTokens,
-							completionToken: response.usage.completionTokens,
-							totalToken: response.usage.totalTokens,
-							reasoning: response.reasoning,
-							sessionId: sessionId,
-						})
-						.onConflictDoNothing();
-				}
-			},
-			experimental_transform: smoothStream({
-				delayInMs: 20,
-			}),
-		});
+		return createDataStreamResponse({
+			execute: (dataStream) => {
+				dataStream.writeData("<thinking>");
 
-		return result.toDataStreamResponse();
+				const result = streamText({
+					model: openrouter(model),
+					messages,
+					...(instruction && { system: instruction }),
+					onChunk: () => {
+						dataStream.writeMessageAnnotation({ model: model });
+					},
+					onFinish: async (response) => {
+						// once stream is closed, store the messages
+						if (response.finishReason === "stop") {
+							await db
+								.insert(messagesTable)
+								.values({
+									id: response.response.id,
+									role: "assistant",
+									createdAt: new Date().getTime(),
+									content: response.text,
+									model: model,
+									promptToken: response.usage.promptTokens,
+									completionToken: response.usage.completionTokens,
+									totalToken: response.usage.totalTokens,
+									reasoning: response.reasoning,
+									sessionId: sessionId,
+								})
+								.onConflictDoNothing();
+						}
+
+						dataStream.writeData("<done>");
+					},
+					experimental_transform: smoothStream({
+						delayInMs: 20,
+					}),
+				});
+
+				result.mergeIntoDataStream(dataStream);
+			},
+			onError: (error) => {
+				return error instanceof Error ? error.message : String(error);
+			},
+		});
 	} catch (e) {
-		const err = e as unknown as Error;
-		return Response.json({ error: err.message }, { status: 400 });
+		if (e instanceof Error) {
+			return Response.json({ error: e.message }, { status: 500 });
+		}
+		return Response.json({ error: String(e) }, { status: 500 });
 	}
 }

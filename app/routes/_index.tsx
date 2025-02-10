@@ -1,14 +1,16 @@
 import type { ActionFunctionArgs } from "@remix-run/node";
 import {
 	Form,
+	isRouteErrorResponse,
 	redirect,
 	useActionData,
 	useLoaderData,
 	useNavigate,
 	useNavigation,
+	useRouteError,
 } from "@remix-run/react";
 import { TwitterSnowflake } from "@sapphire/snowflake";
-import { Loader2, Send, Squirrel } from "lucide-react";
+import { CircleAlert, Loader2, Send, Squirrel } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -75,18 +77,10 @@ export default function AppHome() {
 
 	useEffect(() => {
 		if (response) {
-			// store new chat to localstorage
-			localStorage.setItem(
-				"newChat",
-				JSON.stringify({
-					message: message,
-					model: selectedModel,
-				}),
-			);
 			refreshConversationsList();
 			navigate(`/chat/${response.id}`);
 		}
-	}, [response, navigate, refreshConversationsList, message, selectedModel]);
+	}, [response, navigate, refreshConversationsList]);
 
 	return (
 		<div className="flex h-full items-center justify-center">
@@ -145,7 +139,8 @@ export default function AppHome() {
 								!message
 							}
 						>
-							{navigation.state === "submitting" ? (
+							{navigation.state === "submitting" ||
+							navigation.state === "loading" ? (
 								<>
 									<Loader2 className="mr-2 h-4 w-4 animate-spin" />{" "}
 									Processing...
@@ -161,4 +156,30 @@ export default function AppHome() {
 			</div>
 		</div>
 	);
+}
+
+export function ErrorBoundary() {
+	const error = useRouteError();
+	console.error(error);
+	if (isRouteErrorResponse(error)) {
+		return (
+			<div className="border border-red-400 p-2 rounded mt-6 bg-white/10">
+				<div className="text-red-400 flex flex-row gap-2">
+					<CircleAlert /> {error.statusText}
+				</div>
+			</div>
+		);
+	}
+
+	if (error instanceof Error) {
+		return (
+			<div className="border border-red-400 p-2 rounded mt-6 bg-white/10">
+				<div className="text-red-400 flex flex-row gap-2">
+					<CircleAlert /> {error.message}
+				</div>
+			</div>
+		);
+	}
+
+	return <div>Unknown Error</div>;
 }

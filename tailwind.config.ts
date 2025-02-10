@@ -15,6 +15,14 @@ export default {
 					'Segoe UI Emoji',
 					'Segoe UI Symbol',
 					'Noto Color Emoji'
+				],
+				mono: [
+					'Roboto Mono',
+					'monospace',
+					'Apple Color Emoji',
+					'Segoe UI Emoji',
+					'Segoe UI Symbol',
+					'Noto Color Emoji'
 				]
 			},
 			borderRadius: {

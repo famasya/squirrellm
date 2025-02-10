@@ -1,6 +1,7 @@
 import type { ActionFunctionArgs } from "@remix-run/node";
 import {
 	Form,
+	useActionData,
 	useLoaderData,
 	useLocation,
 	useNavigation,
@@ -75,6 +76,7 @@ export async function action({ request }: ActionFunctionArgs) {
 export default function Settings() {
 	const navigation = useNavigation();
 	const location = useLocation();
+	const response = useActionData<boolean>();
 	const { data: openrouterModels, isLoading } = useSWR(
 		"https://openrouter.ai/api/v1/models",
 		async (url) => {
@@ -84,7 +86,7 @@ export default function Settings() {
 		},
 		{
 			onError: (error) => {
-				console.log(error);
+				console.error(error);
 				toast.error("Error loading models");
 			},
 		},
@@ -97,8 +99,15 @@ export default function Settings() {
 		isDefault: dbModels.length === 0,
 	});
 
+	// show alert if response is true
 	useEffect(() => {
-		// reset state
+		if (response === true) {
+			toast.success("Settings saved");
+		}
+	}, [response]);
+
+	// reset state
+	useEffect(() => {
 		if (location.key) {
 			setFormValue({
 				id: "",

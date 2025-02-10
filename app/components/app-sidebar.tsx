@@ -54,7 +54,7 @@ export default function AppSidebar() {
 		{
 			revalidateFirstPage: false,
 			onError: (error) => {
-				console.log(error);
+				console.error(error);
 				toast.error("Error loading conversations");
 			},
 		},
@@ -110,9 +110,9 @@ export default function AppSidebar() {
 																<MessageSquare className="w-4 h-4" />
 															</div>
 															<div className="w-full">
-																{conversation.name.length < 24
+																{conversation.name.length < 20
 																	? conversation.name
-																	: `${conversation.name.slice(0, 24)}...`}
+																	: `${conversation.name.slice(0, 20)}...`}
 															</div>
 														</div>
 													</NavLink>

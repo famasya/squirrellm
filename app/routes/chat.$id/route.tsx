@@ -8,6 +8,7 @@ import {
 import { TwitterSnowflake } from "@sapphire/snowflake";
 import { useChat } from "ai/react";
 import { eq } from "drizzle-orm";
+import { CircleAlert } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ScrollArea } from "~/components/ui/scroll-area";
@@ -86,6 +87,9 @@ export default function ChatLayout() {
 		messages,
 		input,
 		isLoading,
+		data,
+		stop,
+		setData,
 		append,
 		handleInputChange,
 		handleSubmit,
@@ -101,10 +105,11 @@ export default function ChatLayout() {
 			content: message.content,
 			role: message.role as "assistant" | "user",
 			id: message.id,
+			annotations: [{ model: message.model }],
 			createdAt: new Date(message.createdAt),
 		})),
 		onError: (error) => {
-			console.log(error);
+			console.error(error);
 			toast.error(error.message);
 		},
 	});
@@ -134,38 +139,56 @@ export default function ChatLayout() {
 					lastMessageRef.current.scrollIntoView({ behavior: "smooth" });
 				}
 			};
-
 			scrollToBottom();
 
 			// Also scroll when messages are still streaming
 			const timer = setTimeout(scrollToBottom, 100);
-
 			return () => clearTimeout(timer);
 		}
 	}, [messages]); // Re-run when messages change
 
 	return (
 		<div className="w-full flex flex-col h-full overflow-hidden">
-			<div className="px-3 pt-2 flex-1 overflow-auto" ref={scrollRef}>
+			<div className="px-3 pt-2 flex-1 overflow-auto mb-8" ref={scrollRef}>
 				<ScrollArea className="h-full overflow-y-auto pr-4">
-					{messages.map((message, index) => (
-						<div
-							key={message.id}
-							ref={index === messages.length - 1 ? lastMessageRef : null}
-						>
-							<ChatBubble
+					{messages.map((message, index) => {
+						const messageModelUsed = message.annotations?.[0] as
+							| undefined
+							| { model: string };
+						const nowThinking =
+							data?.includes("<thinking>") &&
+							!data.includes("<done>") &&
+							index === messages.length - 1;
+						return (
+							<div
 								key={message.id}
-								text={message.content}
-								isBot={message.role === "assistant"}
-							/>
-						</div>
-					))}
+								ref={index === messages.length - 1 ? lastMessageRef : null}
+							>
+								<ChatBubble
+									id={message.id}
+									isThinking={nowThinking}
+									key={message.id}
+									text={message.content}
+									createdAt={new Date(message.createdAt || 0)}
+									model={messageModelUsed?.model || selectedModel.model}
+									isBot={message.role === "assistant"}
+								/>
+							</div>
+						);
+					})}
 				</ScrollArea>
 			</div>
 
 			<AppChatbox
+				stop={() => {
+					setData(undefined);
+					stop();
+				}}
 				handleInputChange={handleInputChange}
-				handleSend={handleSubmit}
+				handleSend={() => {
+					setData(undefined);
+					handleSubmit();
+				}}
 				handleModelChange={(model, instruction) => {
 					selectModel({ model, instruction });
 				}}
@@ -180,11 +203,13 @@ export default function ChatLayout() {
 
 export function ErrorBoundary() {
 	const error = useRouteError();
-
+	console.error(error);
 	if (isRouteErrorResponse(error)) {
 		return (
 			<div className="border border-red-400 p-2 rounded mt-6 bg-white/10">
-				<div className="text-red-400">{error.statusText}</div>
+				<div className="text-red-400 flex flex-row gap-2">
+					<CircleAlert /> {error.statusText}
+				</div>
 			</div>
 		);
 	}
@@ -192,7 +217,9 @@ export function ErrorBoundary() {
 	if (error instanceof Error) {
 		return (
 			<div className="border border-red-400 p-2 rounded mt-6 bg-white/10">
-				<div className="text-red-400">{error.message}</div>
+				<div className="text-red-400 flex flex-row gap-2">
+					<CircleAlert /> {error.message}
+				</div>
 			</div>
 		);
 	}

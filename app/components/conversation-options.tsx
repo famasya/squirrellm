@@ -1,5 +1,5 @@
 import { useNavigate } from "@remix-run/react";
-import { MoreHorizontal, Trash2 } from "lucide-react";
+import { Loader2, MoreHorizontal, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import useSWRMutation from "swr/mutation";
@@ -42,12 +42,13 @@ export default function ConversationOptions({ id }: Props) {
 		},
 		{
 			onSuccess: () => {
+				setOpen(false);
 				toast.success("Chat deleted");
 				refreshConversationsList();
 				navigate("/");
 			},
 			onError: (error) => {
-				console.log(error);
+				console.error(error);
 				toast.error("Error deleting chat. Please try again");
 			},
 		},
@@ -68,7 +69,7 @@ export default function ConversationOptions({ id }: Props) {
 				</DropdownMenuContent>
 			</DropdownMenu>
 
-			<AlertDialog open={open} onOpenChange={() => setOpen(!open)}>
+			<AlertDialog open={open}>
 				<AlertDialogContent>
 					<AlertDialogHeader>
 						<AlertDialogTitle>Delete conversation?</AlertDialogTitle>
@@ -85,8 +86,15 @@ export default function ConversationOptions({ id }: Props) {
 							disabled={isMutating}
 							onClick={() => trigger(id)}
 						>
-							<Trash2 />
-							Continue
+							{isMutating ? (
+								<>
+									<Loader2 className="animate-spin" /> Continue
+								</>
+							) : (
+								<>
+									<Trash2 /> Continue
+								</>
+							)}
 						</AlertDialogAction>
 					</AlertDialogFooter>
 				</AlertDialogContent>

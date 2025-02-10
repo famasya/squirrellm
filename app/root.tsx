@@ -30,7 +30,7 @@ export const links: LinksFunction = () => [
 	},
 	{
 		rel: "stylesheet",
-		href: "https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap",
+		href: "https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Roboto+Mono:ital,wght@0,100..700;1,100..700&display=swap",
 	},
 ];
 export const meta: MetaFunction = () => [
@@ -79,7 +79,13 @@ function App() {
 								closeButton
 							/>
 							<TooltipProvider delayDuration={0}>
-								<Suspense fallback={<Loader2 className="animate-spin" />}>
+								<Suspense
+									fallback={
+										<div className="flex h-screen items-center justify-center">
+											<Loader2 className="animate-spin" />
+										</div>
+									}
+								>
 									<Outlet />
 								</Suspense>
 							</TooltipProvider>

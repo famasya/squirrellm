@@ -1,5 +1,5 @@
 import type { InferSelectModel } from "drizzle-orm";
-import { Loader2, Send } from "lucide-react";
+import { Send, StopCircle } from "lucide-react";
 import { AutosizeTextarea } from "~/components/ui/autosize-textarea";
 import { Button } from "~/components/ui/button";
 import { SearchableSelect } from "~/components/ui/searchable-select";
@@ -10,6 +10,7 @@ type Props = {
 	input: string;
 	isLoading: boolean;
 	lastUsedModel: string;
+	stop: () => void;
 	handleModelChange: (model: string, instruction?: string) => void;
 	handleInputChange: (event: React.ChangeEvent<HTMLTextAreaElement>) => void;
 	availableModels: InferSelectModel<typeof models>[];
@@ -20,6 +21,7 @@ export default function AppChatbox({
 	input,
 	lastUsedModel,
 	isLoading,
+	stop,
 	handleInputChange,
 	handleSend,
 	handleModelChange,
@@ -66,12 +68,19 @@ export default function AppChatbox({
 						</div>
 						<div className="flex items-center gap-2">
 							<Button
-								disabled={isLoading}
-								onClick={handleSend}
+								disabled={input === "" && !isLoading}
+								onClick={isLoading ? stop : handleSend}
 								className="flex items-center justify-center"
 							>
-								{isLoading ? <Loader2 className="animate-spin" /> : <Send />}{" "}
-								Send (Enter)
+								{isLoading ? (
+									<span className="flex items-center gap-2">
+										<StopCircle /> Stop
+									</span>
+								) : (
+									<span className="flex items-center gap-2">
+										<Send /> Send
+									</span>
+								)}
 							</Button>
 						</div>
 					</div>
