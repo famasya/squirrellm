@@ -12,6 +12,8 @@ import {
 	Scripts,
 	ScrollRestoration,
 } from "@remix-run/react";
+import { Loader2 } from "lucide-react";
+import { Suspense } from "react";
 import AppHeader from "./components/app-header";
 import AppSidebar from "./components/app-sidebar";
 import { SidebarProvider } from "./components/ui/sidebar";
@@ -77,7 +79,9 @@ function App() {
 								closeButton
 							/>
 							<TooltipProvider delayDuration={0}>
-								<Outlet />
+								<Suspense fallback={<Loader2 className="animate-spin" />}>
+									<Outlet />
+								</Suspense>
 							</TooltipProvider>
 						</div>
 					</div>

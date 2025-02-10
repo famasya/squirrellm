@@ -1,5 +1,4 @@
 import { NavLink, useParams } from "@remix-run/react";
-import { formatRelative } from "date-fns";
 import type { InferSelectModel } from "drizzle-orm";
 import { CircleEllipsis, MessageSquare, Plus, Settings } from "lucide-react";
 import { useState } from "react";
@@ -21,9 +20,9 @@ import {
 import type { conversations } from "~/lib/db.schema";
 import useChatStore from "~/lib/stores";
 import { cn } from "~/lib/utils";
+import ConversationOptions from "./conversation-options";
 import { ScrollArea } from "./ui/scroll-area";
 import { Skeleton } from "./ui/skeleton";
-import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
 type ConversationsResponse = {
 	conversations: Array<InferSelectModel<typeof conversations>>;
@@ -98,37 +97,30 @@ export default function AppSidebar() {
 											))
 									: conversations?.map((conversation) => (
 											<SidebarMenuItem key={conversation.id}>
-												<Tooltip>
-													<TooltipTrigger className="w-full">
-														<SidebarMenuButton asChild>
-															<NavLink
-																to={`/chat/${conversation.id}`}
-																className={cn(
-																	isActive(conversation.id) &&
-																		"bg-sidebar-accent text-sidebar-accent-foreground",
-																)}
-															>
-																<div className="flex flex-row gap-2 items-center">
-																	<MessageSquare />
-																	<span className="w-full">
-																		{conversation.name.length < 24
-																			? conversation.name
-																			: `${conversation.name.slice(0, 24)}...`}
-																	</span>
-																</div>
-															</NavLink>
-														</SidebarMenuButton>
-													</TooltipTrigger>
-													<TooltipContent side="right">
-														{formatRelative(
-															new Date(conversation.createdAt),
-															new Date(),
+												<SidebarMenuButton asChild>
+													<NavLink
+														to={`/chat/${conversation.id}`}
+														className={cn(
+															isActive(conversation.id) &&
+																"bg-sidebar-accent text-sidebar-accent-foreground",
 														)}
-													</TooltipContent>
-												</Tooltip>
+													>
+														<div className="flex flex-row gap-2 items-center w-full">
+															<div>
+																<MessageSquare className="w-4 h-4" />
+															</div>
+															<div className="w-full">
+																{conversation.name.length < 24
+																	? conversation.name
+																	: `${conversation.name.slice(0, 24)}...`}
+															</div>
+														</div>
+													</NavLink>
+												</SidebarMenuButton>
+												<ConversationOptions id={conversation.id} />
 											</SidebarMenuItem>
 										))}
-								<SidebarMenuItem className="mt-4">
+								<SidebarMenuItem className="mt-1">
 									<SidebarMenuButton
 										disabled={!nextCursor}
 										onClick={() => setSize(size + 1)}
@@ -139,7 +131,7 @@ export default function AppSidebar() {
 													<CircleEllipsis className="w-4 h-4" /> Load More
 												</>
 											) : (
-												<>No more conversations</>
+												<>{!isLoading ? "No more conversations" : null}</>
 											)}
 										</span>
 									</SidebarMenuButton>

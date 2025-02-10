@@ -8,7 +8,7 @@ import {
 import { TwitterSnowflake } from "@sapphire/snowflake";
 import { useChat } from "ai/react";
 import { eq } from "drizzle-orm";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ScrollArea } from "~/components/ui/scroll-area";
 import { db } from "~/lib/db";
@@ -44,8 +44,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
 	const availableModels = await db.select().from(models);
 
-	// set the model to the last used model
-	const model = messages[messages.length - 1]?.model || conversation?.model;
+	// set the model to the last message
+	const lastMessage = messages[messages.length - 1];
+	const model = lastMessage?.model || conversation?.model;
 	if (!model) {
 		return redirect("/settings?state=onboarding");
 	}
@@ -56,6 +57,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 		sessionId: params.id,
 		availableModels,
 		newConversationMessage: conversation?.message,
+		newConversationModelInstruction: conversation?.instruction,
 	};
 }
 
@@ -66,8 +68,19 @@ export default function ChatLayout() {
 		sessionId,
 		availableModels,
 		newConversationMessage,
+		newConversationModelInstruction,
 	} = useLoaderData<typeof loader>();
 	const initializeChat = useRef(false);
+
+	const lastModelInstruction =
+		availableModels.find((m) => m.id === model)?.systemMessage || undefined;
+	const [selectedModel, selectModel] = useState<{
+		model: string;
+		instruction?: string;
+	}>({
+		model: model,
+		instruction: newConversationModelInstruction || lastModelInstruction,
+	});
 
 	const {
 		messages,
@@ -77,8 +90,13 @@ export default function ChatLayout() {
 		handleInputChange,
 		handleSubmit,
 	} = useChat({
-		api: `/api/chat?sessionId=${sessionId}&model=${model}`,
+		api: `/api/chat?sessionId=${sessionId}&model=${selectedModel.model}`,
 		sendExtraMessageFields: true,
+		headers: {
+			...(selectedModel.instruction && {
+				"model-instruction": selectedModel.instruction,
+			}),
+		},
 		initialMessages: previousMessages.map((message) => ({
 			content: message.content,
 			role: message.role as "assistant" | "user",
@@ -148,11 +166,13 @@ export default function ChatLayout() {
 			<AppChatbox
 				handleInputChange={handleInputChange}
 				handleSend={handleSubmit}
+				handleModelChange={(model, instruction) => {
+					selectModel({ model, instruction });
+				}}
 				input={input}
 				isLoading={isLoading}
 				availableModels={availableModels}
 				lastUsedModel={model}
-				sessionId={sessionId}
 			/>
 		</div>
 	);

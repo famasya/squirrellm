@@ -1,21 +1,18 @@
-import { useNavigate } from "@remix-run/react";
-import { Loader2, Send, Trash2 } from "lucide-react";
-import { toast } from "sonner";
-import useSWRMutation from "swr/mutation";
-import { AlertDialogWrapper } from "~/components/ui/alert-dialog";
+import type { InferSelectModel } from "drizzle-orm";
+import { Loader2, Send } from "lucide-react";
 import { AutosizeTextarea } from "~/components/ui/autosize-textarea";
 import { Button } from "~/components/ui/button";
 import { SearchableSelect } from "~/components/ui/searchable-select";
-import useChatStore from "~/lib/stores";
+import type { models } from "~/lib/db.schema";
 
 type Props = {
 	handleSend: () => void;
 	input: string;
 	isLoading: boolean;
 	lastUsedModel: string;
+	handleModelChange: (model: string, instruction?: string) => void;
 	handleInputChange: (event: React.ChangeEvent<HTMLTextAreaElement>) => void;
-	availableModels: { id: string; name: string }[];
-	sessionId: string;
+	availableModels: InferSelectModel<typeof models>[];
 };
 
 export default function AppChatbox({
@@ -25,39 +22,22 @@ export default function AppChatbox({
 	isLoading,
 	handleInputChange,
 	handleSend,
-	sessionId,
+	handleModelChange,
 }: Props) {
-	const navigate = useNavigate();
-	const { refreshConversationsList } = useChatStore();
-	const { trigger, isMutating } = useSWRMutation(
-		"/api/delete-chat",
-		async (key, { arg }: { arg: string }) => {
-			const response = await fetch(key, {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify({ id: arg }),
-			});
-			return response.json();
-		},
-		{
-			onSuccess: () => {
-				toast.success("Chat deleted");
-				refreshConversationsList();
-				navigate("/");
-			},
-			onError: (error) => {
-				console.log(error);
-				toast.error("Error deleting chat. Please try again");
-			},
-		},
-	);
-
 	const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
 		if (event.key === "Enter" && !event.shiftKey) {
 			event.preventDefault();
 			handleSend();
+		}
+	};
+
+	const onModelChange = (option: { value: string; label: string }) => {
+		const selectedModel = availableModels.find((m) => m.id === option.value);
+		if (selectedModel) {
+			handleModelChange(
+				selectedModel.id,
+				selectedModel.systemMessage || undefined,
+			);
 		}
 	};
 
@@ -68,7 +48,6 @@ export default function AppChatbox({
 					<AutosizeTextarea
 						className="flex-1"
 						value={input}
-						disabled={isMutating}
 						onKeyDown={handleKeyDown}
 						placeholder={"Ask me anything... (Shift + Enter for new line)"}
 						onChange={handleInputChange}
@@ -81,25 +60,13 @@ export default function AppChatbox({
 									value: model.id,
 									label: model.name,
 								}))}
+								onChange={onModelChange}
 								placeholder="Select a model"
 							/>
 						</div>
 						<div className="flex items-center gap-2">
-							<AlertDialogWrapper
-								title={"Clear chat"}
-								description={"Are you sure you want to delete the chat?"}
-								confirmAction={() => {
-									trigger(sessionId);
-								}}
-								cancelAction={() => {}}
-							>
-								<Button disabled={isMutating} variant={"ghost"} size={"icon"}>
-									<Trash2 />
-								</Button>
-							</AlertDialogWrapper>
-
 							<Button
-								disabled={isLoading || isMutating}
+								disabled={isLoading}
 								onClick={handleSend}
 								className="flex items-center justify-center"
 							>

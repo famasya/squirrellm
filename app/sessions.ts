@@ -8,6 +8,7 @@ type SessionFlashData = {
 	newConversation: {
 		message: string;
 		model: string;
+		instruction?: string;
 	};
 };
 

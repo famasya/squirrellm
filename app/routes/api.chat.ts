@@ -14,23 +14,12 @@ export async function action({ request }: ActionFunctionArgs) {
 			throw new Error("Messages are required");
 		}
 
-		console.log(process.env.OPENROUTER_API_KEY);
 		const openrouter = createOpenRouter({
 			apiKey: process.env.OPENROUTER_API_KEY,
 		});
 
 		// add user message to messages (from latest message)
 		const message = messages[messages.length - 1] as Message;
-		// console.log(message, model, sessionId);
-		console.log({
-			id: message.id,
-			role: "user",
-			createdAt: new Date().getTime(),
-			content: message.content,
-			model: model,
-			sessionId: sessionId,
-		});
-
 		await db
 			.insert(messagesTable)
 			.values({
@@ -43,9 +32,13 @@ export async function action({ request }: ActionFunctionArgs) {
 			})
 			.onConflictDoNothing();
 
+		// get instruction from header
+		const headers = new Headers(request.headers);
+		const instruction = headers.get("model-instruction");
 		const result = streamText({
 			model: openrouter(model),
 			messages,
+			...(instruction && { system: instruction }),
 			onFinish: async (response) => {
 				// once stream is closed, store the messages
 				if (response.finishReason === "stop") {

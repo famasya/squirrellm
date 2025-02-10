@@ -23,7 +23,6 @@ export async function loader(args: LoaderFunctionArgs) {
 			.where(lt(conversations.createdAt, cursor))
 			.orderBy(desc(conversations.createdAt))
 			.limit(LIMIT + 1);
-		console.log(cursor);
 
 		const hasMore = data.length > LIMIT;
 		if (hasMore) {

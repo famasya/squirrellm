@@ -138,9 +138,12 @@ const AlertDialogWrapper = ({
 	cancelAction,
 	confirmAction,
 }: Props) => {
+	const [open, setOpen] = React.useState(false);
 	return (
-		<AlertDialog>
-			<AlertDialogTrigger asChild>{children}</AlertDialogTrigger>
+		<AlertDialog open={open}>
+			<AlertDialogTrigger asChild onClick={() => setOpen(true)}>
+				{children}
+			</AlertDialogTrigger>
 			<AlertDialogContent>
 				<AlertDialogHeader>
 					<AlertDialogTitle>{title}</AlertDialogTitle>

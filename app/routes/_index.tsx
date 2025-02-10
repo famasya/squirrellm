@@ -21,8 +21,9 @@ import { commitSession, getSession } from "~/sessions";
 export async function action({ request }: ActionFunctionArgs) {
 	const session = await getSession(request.headers.get("Cookie"));
 	const body = await request.formData();
-	const message = body.get("message");
-	const model = body.get("model");
+	const message = body.get("message")?.toString();
+	const model = body.get("model")?.toString();
+	const instruction = body.get("instruction")?.toString();
 	if (!message || !model) throw new Error("Message is required");
 
 	const id = TwitterSnowflake.generate().toString();
@@ -35,8 +36,9 @@ export async function action({ request }: ActionFunctionArgs) {
 	});
 
 	session.flash("newConversation", {
-		message: message as string,
-		model: model as string,
+		message: message,
+		model: model,
+		instruction: instruction?.toString(),
 	});
 
 	return Response.json(
@@ -64,7 +66,10 @@ export default function AppHome() {
 	const { models } = useLoaderData<typeof loader>();
 	const defaultModel =
 		models.find((model) => model.isDefault === 1) ?? models[0];
-	const [selectedModel, setSelectedModel] = useState(defaultModel.id);
+	const [selectedModel, setSelectedModel] = useState({
+		model: defaultModel.id,
+		instruction: defaultModel.systemMessage,
+	});
 	const response = useActionData<{ id: string }>();
 	const { refreshConversationsList } = useChatStore();
 
@@ -107,8 +112,15 @@ export default function AppHome() {
 								disabled={
 									navigation.state === "submitting" || models.length === 0
 								}
-								value={defaultModel?.id}
-								onChange={(value) => setSelectedModel(value.value)}
+								value={selectedModel.model}
+								onChange={(value) =>
+									setSelectedModel({
+										model: value.value,
+										instruction:
+											models.find((m) => m.id === value.value)?.systemMessage ||
+											null,
+									})
+								}
 								options={models.map((model) => ({
 									value: model.id,
 									label: model.name,
@@ -116,7 +128,14 @@ export default function AppHome() {
 								placeholder="Select a model"
 							/>
 						</div>
-						<Input type="hidden" name="model" value={defaultModel?.id} />
+						<Input type="hidden" name="model" value={selectedModel.model} />
+						{selectedModel.instruction && (
+							<Input
+								type="hidden"
+								name="instruction"
+								value={selectedModel.instruction}
+							/>
+						)}
 
 						<Button
 							type="submit"
