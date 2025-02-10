@@ -16,45 +16,52 @@ import {
 	SidebarMenu,
 	SidebarMenuButton,
 	SidebarMenuItem,
+	useSidebar,
 } from "~/components/ui/sidebar";
-import type { sessions } from "~/lib/db.schema";
+import type { conversations } from "~/lib/db.schema";
 import useChatStore from "~/lib/stores";
 import { cn } from "~/lib/utils";
+import { ScrollArea } from "./ui/scroll-area";
 import { Skeleton } from "./ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
-type SessionResponse = {
-	sessions: Array<InferSelectModel<typeof sessions>>;
+type ConversationsResponse = {
+	conversations: Array<InferSelectModel<typeof conversations>>;
 	cursor: string | null;
 };
 
 export default function AppSidebar() {
 	const params = useParams();
 	const [nextCursor, setNextCursor] = useState<string | null>(null);
-	const { refreshSessionsKey } = useChatStore();
+	const { state } = useSidebar();
+	const { refreshConversationsListKey } = useChatStore();
 	const { data, isLoading, size, setSize } = useSWRInfinite(
-		(index, previousPageData: SessionResponse["sessions"]) => {
+		(index, previousPageData: ConversationsResponse["conversations"]) => {
 			if (previousPageData && !previousPageData.length)
-				return ["", refreshSessionsKey];
-			if (index === 0) return ["/api/sessions", refreshSessionsKey];
-			return [`/api/sessions?cursor=${nextCursor}`, refreshSessionsKey];
+				return ["", refreshConversationsListKey];
+			if (index === 0)
+				return ["/api/conversations", refreshConversationsListKey];
+			return [
+				`/api/conversations?cursor=${nextCursor}`,
+				refreshConversationsListKey,
+			];
 		},
 		async ([url, _]) => {
 			const res = await fetch(url);
-			const data = (await res.json()) as SessionResponse;
+			const data = (await res.json()) as ConversationsResponse;
 			setNextCursor(data.cursor);
-			return data.sessions;
+			return data.conversations;
 		},
 		{
 			revalidateFirstPage: false,
 			onError: (error) => {
 				console.log(error);
-				toast.error("Error loading sessions");
+				toast.error("Error loading conversations");
 			},
 		},
 	);
 
-	const sessions = data?.flat();
+	const conversations = data?.flat();
 	const isActive = (id: string) => params.id === id;
 
 	return (
@@ -77,63 +84,69 @@ export default function AppSidebar() {
 						</SidebarGroupContent>
 					</SidebarGroup>
 
-					<SidebarGroup>
-						<SidebarGroupLabel>Sessions</SidebarGroupLabel>
-						<SidebarMenu>
-							{isLoading
-								? Array(3)
-										.fill(0)
-										.map((_, i) => (
-											<SidebarMenuItem key={i.toString()}>
-												<Skeleton className="h-6 w-full mb-2" />
+					<ScrollArea className="h-full w-full">
+						<SidebarGroup className={cn(state === "collapsed" && "hidden")}>
+							<SidebarGroupLabel>Conversations</SidebarGroupLabel>
+							<SidebarMenu>
+								{isLoading
+									? Array(3)
+											.fill(0)
+											.map((_, i) => (
+												<SidebarMenuItem key={i.toString()}>
+													<Skeleton className="h-6 w-full mb-2" />
+												</SidebarMenuItem>
+											))
+									: conversations?.map((conversation) => (
+											<SidebarMenuItem key={conversation.id}>
+												<Tooltip>
+													<TooltipTrigger className="w-full">
+														<SidebarMenuButton asChild>
+															<NavLink
+																to={`/chat/${conversation.id}`}
+																className={cn(
+																	isActive(conversation.id) &&
+																		"bg-sidebar-accent text-sidebar-accent-foreground",
+																)}
+															>
+																<div className="flex flex-row gap-2 items-center">
+																	<MessageSquare />
+																	<span className="w-full">
+																		{conversation.name.length < 24
+																			? conversation.name
+																			: `${conversation.name.slice(0, 24)}...`}
+																	</span>
+																</div>
+															</NavLink>
+														</SidebarMenuButton>
+													</TooltipTrigger>
+													<TooltipContent side="right">
+														{formatRelative(
+															new Date(conversation.createdAt),
+															new Date(),
+														)}
+													</TooltipContent>
+												</Tooltip>
 											</SidebarMenuItem>
-										))
-								: sessions?.map((session) => (
-										<SidebarMenuItem key={session.id}>
-											<Tooltip>
-												<TooltipTrigger className="w-full">
-													<SidebarMenuButton asChild>
-														<NavLink
-															to={`/chat/${session.id}`}
-															className={cn(
-																isActive(session.id) &&
-																	"bg-sidebar-accent text-sidebar-accent-foreground",
-															)}
-														>
-															<div className="flex flex-row gap-2 items-center">
-																<MessageSquare />
-																<span className="w-full">{session.name}</span>
-															</div>
-														</NavLink>
-													</SidebarMenuButton>
-												</TooltipTrigger>
-												<TooltipContent side="right" className="ml-2">
-													{formatRelative(
-														new Date(session.createdAt),
-														new Date(),
-													)}
-												</TooltipContent>
-											</Tooltip>
-										</SidebarMenuItem>
-									))}
-							<SidebarMenuItem className="mt-4">
-								<SidebarMenuButton
-									disabled={!nextCursor}
-									onClick={() => setSize(size + 1)}
-								>
-									<span className="w-full flex flex-row gap-2 items-center justify-center">
-										{nextCursor ? (
-											<>
-												<CircleEllipsis className="w-4 h-4" /> Load More
-											</>
-										) : (
-											<>No more sessions</>
-										)}
-									</span>
-								</SidebarMenuButton>
-							</SidebarMenuItem>
-						</SidebarMenu>
-					</SidebarGroup>
+										))}
+								<SidebarMenuItem className="mt-4">
+									<SidebarMenuButton
+										disabled={!nextCursor}
+										onClick={() => setSize(size + 1)}
+									>
+										<span className="w-full flex flex-row gap-2 items-center justify-center">
+											{nextCursor ? (
+												<>
+													<CircleEllipsis className="w-4 h-4" /> Load More
+												</>
+											) : (
+												<>No more conversations</>
+											)}
+										</span>
+									</SidebarMenuButton>
+								</SidebarMenuItem>
+							</SidebarMenu>
+						</SidebarGroup>
+					</ScrollArea>
 				</SidebarContent>
 				<SidebarFooter>
 					<SidebarMenu>

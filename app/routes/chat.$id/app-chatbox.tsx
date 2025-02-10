@@ -1,8 +1,5 @@
 import { useNavigate } from "@remix-run/react";
-import { TwitterSnowflake } from "@sapphire/snowflake";
-import { useChat } from "ai/react";
 import { Loader2, Send, Trash2 } from "lucide-react";
-import { useEffect } from "react";
 import { toast } from "sonner";
 import useSWRMutation from "swr/mutation";
 import { AlertDialogWrapper } from "~/components/ui/alert-dialog";
@@ -12,27 +9,26 @@ import { SearchableSelect } from "~/components/ui/searchable-select";
 import useChatStore from "~/lib/stores";
 
 type Props = {
-	storedMessages: {
-		id: string;
-		content: string;
-		role: string;
-		createdAt: Date;
-	}[];
-	initialMessage?: string;
-	model: string;
+	handleSend: () => void;
+	input: string;
+	isLoading: boolean;
+	lastUsedModel: string;
+	handleInputChange: (event: React.ChangeEvent<HTMLTextAreaElement>) => void;
 	availableModels: { id: string; name: string }[];
 	sessionId: string;
 };
 
 export default function AppChatbox({
-	storedMessages,
-	model,
-	initialMessage,
 	availableModels,
+	input,
+	lastUsedModel,
+	isLoading,
+	handleInputChange,
+	handleSend,
 	sessionId,
 }: Props) {
 	const navigate = useNavigate();
-	const { refreshSessions } = useChatStore();
+	const { refreshConversationsList } = useChatStore();
 	const { trigger, isMutating } = useSWRMutation(
 		"/api/delete-chat",
 		async (key, { arg }: { arg: string }) => {
@@ -48,7 +44,7 @@ export default function AppChatbox({
 		{
 			onSuccess: () => {
 				toast.success("Chat deleted");
-				refreshSessions();
+				refreshConversationsList();
 				navigate("/");
 			},
 			onError: (error) => {
@@ -58,73 +54,12 @@ export default function AppChatbox({
 		},
 	);
 
-	const {
-		messages,
-		input,
-		isLoading,
-		append,
-		handleInputChange,
-		handleSubmit,
-	} = useChat({
-		api: `/api/chat?sessionId=${sessionId}&model=${model}`,
-		sendExtraMessageFields: true,
-		initialMessages: storedMessages.map((message) => ({
-			content: message.content,
-			role: message.role as "assistant" | "user",
-			id: message.id,
-			createdAt: message.createdAt,
-		})),
-	});
-	const { setSessionMessages } = useChatStore();
-
-	const handleSend = () => {
-		setSessionMessages([
-			...messages,
-			{
-				id: TwitterSnowflake.generate().toString(),
-				content: input,
-				role: "user",
-			},
-		]);
-		handleSubmit();
-	};
-
 	const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
 		if (event.key === "Enter" && !event.shiftKey) {
 			event.preventDefault();
 			handleSend();
 		}
 	};
-
-	useEffect(() => {
-		// store messages to store
-		if (messages.length > 0) {
-			setSessionMessages(messages.map((message) => ({ ...message })));
-		}
-	}, [messages, setSessionMessages]);
-
-	useEffect(() => {
-		// set messages to store
-		setSessionMessages(
-			storedMessages.map((message) => ({
-				content: message.content,
-				id: message.id,
-				role: message.role as "assistant" | "user",
-				createdAt: new Date(message.createdAt),
-			})),
-		);
-	}, [storedMessages, setSessionMessages]);
-
-	useEffect(() => {
-		if (model && initialMessage && sessionId) {
-			append({
-				content: initialMessage,
-				role: "user",
-				id: TwitterSnowflake.generate().toString(),
-				createdAt: new Date(),
-			});
-		}
-	}, [append, initialMessage, model, sessionId]);
 
 	return (
 		<div>
@@ -141,7 +76,7 @@ export default function AppChatbox({
 					<div className="mt-3 flex items-center justify-between">
 						<div className="flex items-center gap-2">
 							<SearchableSelect
-								value={model}
+								value={lastUsedModel}
 								options={availableModels.map((model) => ({
 									value: model.id,
 									label: model.name,

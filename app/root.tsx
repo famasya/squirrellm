@@ -66,7 +66,16 @@ function App() {
 					<div className="flex flex-col flex-1">
 						<AppHeader />
 						<div className="px-3 flex-1 min-h-0 dark:bg-zinc-900 overflow-auto">
-							<Toaster />
+							<Toaster
+								toastOptions={{
+									duration: 3000,
+									classNames: {
+										default: "border-white/30 border-2",
+										closeButton: "bg-white/30",
+									},
+								}}
+								closeButton
+							/>
 							<TooltipProvider delayDuration={0}>
 								<Outlet />
 							</TooltipProvider>

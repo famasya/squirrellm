@@ -1,6 +1,6 @@
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import type { ActionFunctionArgs } from "@remix-run/node";
-import { type Message, streamText } from "ai";
+import { type Message, smoothStream, streamText } from "ai";
 import { db } from "~/lib/db";
 import { messages as messagesTable } from "~/lib/db.schema";
 
@@ -14,13 +14,23 @@ export async function action({ request }: ActionFunctionArgs) {
 			throw new Error("Messages are required");
 		}
 
+		console.log(process.env.OPENROUTER_API_KEY);
 		const openrouter = createOpenRouter({
 			apiKey: process.env.OPENROUTER_API_KEY,
 		});
 
 		// add user message to messages (from latest message)
-		console.log(messages, 321);
 		const message = messages[messages.length - 1] as Message;
+		// console.log(message, model, sessionId);
+		console.log({
+			id: message.id,
+			role: "user",
+			createdAt: new Date().getTime(),
+			content: message.content,
+			model: model,
+			sessionId: sessionId,
+		});
+
 		await db
 			.insert(messagesTable)
 			.values({
@@ -38,22 +48,27 @@ export async function action({ request }: ActionFunctionArgs) {
 			messages,
 			onFinish: async (response) => {
 				// once stream is closed, store the messages
-				await db
-					.insert(messagesTable)
-					.values({
-						id: response.response.id,
-						role: "assistant",
-						createdAt: new Date().getTime(),
-						content: response.text,
-						model: model,
-						promptToken: response.usage.promptTokens,
-						completionToken: response.usage.completionTokens,
-						totalToken: response.usage.totalTokens,
-						reasoning: response.reasoning,
-						sessionId: sessionId,
-					})
-					.onConflictDoNothing();
+				if (response.finishReason === "stop") {
+					await db
+						.insert(messagesTable)
+						.values({
+							id: response.response.id,
+							role: "assistant",
+							createdAt: new Date().getTime(),
+							content: response.text,
+							model: model,
+							promptToken: response.usage.promptTokens,
+							completionToken: response.usage.completionTokens,
+							totalToken: response.usage.totalTokens,
+							reasoning: response.reasoning,
+							sessionId: sessionId,
+						})
+						.onConflictDoNothing();
+				}
 			},
+			experimental_transform: smoothStream({
+				delayInMs: 20,
+			}),
 		});
 
 		return result.toDataStreamResponse();

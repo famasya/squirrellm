@@ -1,6 +1,6 @@
 import * as s from "drizzle-orm/sqlite-core";
 
-export const sessions = s.sqliteTable("sessions", {
+export const conversations = s.sqliteTable("conversations", {
 	id: s.text().primaryKey(),
 	createdAt: s.text().notNull(),
 	name: s.text().notNull(),
@@ -19,7 +19,7 @@ export const messages = s.sqliteTable("messages", {
 	sessionId: s
 		.text()
 		.notNull()
-		.references(() => sessions.id, { onDelete: "cascade" }),
+		.references(() => conversations.id, { onDelete: "cascade" }),
 });
 
 export const models = s.sqliteTable("models", {

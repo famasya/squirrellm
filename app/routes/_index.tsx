@@ -14,10 +14,12 @@ import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { SearchableSelect } from "~/components/ui/searchable-select";
 import { db } from "~/lib/db";
-import { models as modelsTable, sessions } from "~/lib/db.schema";
+import { conversations, models as modelsTable } from "~/lib/db.schema";
 import useChatStore from "~/lib/stores";
+import { commitSession, getSession } from "~/sessions";
 
 export async function action({ request }: ActionFunctionArgs) {
+	const session = await getSession(request.headers.get("Cookie"));
 	const body = await request.formData();
 	const message = body.get("message");
 	const model = body.get("model");
@@ -26,13 +28,25 @@ export async function action({ request }: ActionFunctionArgs) {
 	const id = TwitterSnowflake.generate().toString();
 
 	// create session
-	await db.insert(sessions).values({
+	await db.insert(conversations).values({
 		id: id,
 		createdAt: new Date().toISOString(),
 		name: message as string,
 	});
 
-	return Response.json({ id });
+	session.flash("newConversation", {
+		message: message as string,
+		model: model as string,
+	});
+
+	return Response.json(
+		{ id },
+		{
+			headers: {
+				"Set-Cookie": await commitSession(session),
+			},
+		},
+	);
 }
 
 export async function loader() {
@@ -52,19 +66,22 @@ export default function AppHome() {
 		models.find((model) => model.isDefault === 1) ?? models[0];
 	const [selectedModel, setSelectedModel] = useState(defaultModel.id);
 	const response = useActionData<{ id: string }>();
-	const { refreshSessions } = useChatStore();
+	const { refreshConversationsList } = useChatStore();
 
 	useEffect(() => {
 		if (response) {
-			refreshSessions();
-			navigate(`/chat/${response.id}`, {
-				state: {
-					initialModel: selectedModel,
-					initialMessage: message,
-				},
-			});
+			// store new chat to localstorage
+			localStorage.setItem(
+				"newChat",
+				JSON.stringify({
+					message: message,
+					model: selectedModel,
+				}),
+			);
+			refreshConversationsList();
+			navigate(`/chat/${response.id}`);
 		}
-	}, [response, navigate, selectedModel, message, refreshSessions]);
+	}, [response, navigate, refreshConversationsList, message, selectedModel]);
 
 	return (
 		<div className="flex h-full items-center justify-center">
@@ -104,7 +121,9 @@ export default function AppHome() {
 						<Button
 							type="submit"
 							disabled={
-								navigation.state === "submitting" || models.length === 0
+								navigation.state === "submitting" ||
+								models.length === 0 ||
+								!message
 							}
 						>
 							{navigation.state === "submitting" ? (

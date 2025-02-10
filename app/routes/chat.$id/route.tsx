@@ -1,26 +1,38 @@
 import type { LoaderFunctionArgs } from "@remix-run/node";
 import {
-	Outlet,
 	isRouteErrorResponse,
+	redirect,
 	useLoaderData,
-	useLocation,
 	useRouteError,
 } from "@remix-run/react";
+import { TwitterSnowflake } from "@sapphire/snowflake";
+import { useChat } from "ai/react";
 import { eq } from "drizzle-orm";
+import { useEffect, useRef } from "react";
+import { toast } from "sonner";
 import { ScrollArea } from "~/components/ui/scroll-area";
 import { db } from "~/lib/db";
-import { messages as messagesTable, models, sessions } from "~/lib/db.schema";
+import {
+	conversations,
+	messages as messagesTable,
+	models,
+} from "~/lib/db.schema";
+import { useEffectOnce } from "~/lib/utils";
+import { getSession } from "~/sessions";
 import AppChatbox from "./app-chatbox";
+import ChatBubble from "./chat-bubble";
 
-export async function loader({ params }: LoaderFunctionArgs) {
+export async function loader({ request, params }: LoaderFunctionArgs) {
 	if (!params.id) {
 		throw new Response(null, { statusText: "Chat Not Found", status: 404 });
 	}
 
+	const sessionStorage = await getSession(request.headers.get("Cookie"));
+	const conversation = sessionStorage.get("newConversation");
 	const session = await db
 		.select()
-		.from(sessions)
-		.where(eq(sessions.id, params.id));
+		.from(conversations)
+		.where(eq(conversations.id, params.id));
 	if (session.length === 0) {
 		throw new Response(null, { statusText: "Chat Not Found", status: 404 });
 	}
@@ -33,35 +45,113 @@ export async function loader({ params }: LoaderFunctionArgs) {
 	const availableModels = await db.select().from(models);
 
 	// set the model to the last used model
-	const model = messages[messages.length - 1]?.model || null;
-	return { messages, model, sessionId: params.id, availableModels };
+	const model = messages[messages.length - 1]?.model || conversation?.model;
+	if (!model) {
+		return redirect("/settings?state=onboarding");
+	}
+
+	return {
+		previousMessages: messages,
+		model,
+		sessionId: params.id,
+		availableModels,
+		newConversationMessage: conversation?.message,
+	};
 }
 
 export default function ChatLayout() {
-	const { messages, model, sessionId, availableModels } =
-		useLoaderData<typeof loader>();
+	const {
+		previousMessages,
+		model,
+		sessionId,
+		availableModels,
+		newConversationMessage,
+	} = useLoaderData<typeof loader>();
+	const initializeChat = useRef(false);
 
-	const location = useLocation();
-	const initialMessage = location.state?.initialMessage;
-	const initialModel = location.state?.initialModel;
+	const {
+		messages,
+		input,
+		isLoading,
+		append,
+		handleInputChange,
+		handleSubmit,
+	} = useChat({
+		api: `/api/chat?sessionId=${sessionId}&model=${model}`,
+		sendExtraMessageFields: true,
+		initialMessages: previousMessages.map((message) => ({
+			content: message.content,
+			role: message.role as "assistant" | "user",
+			id: message.id,
+			createdAt: new Date(message.createdAt),
+		})),
+		onError: (error) => {
+			console.log(error);
+			toast.error(error.message);
+		},
+	});
+
+	// if this is a new conversation, execute initial message
+	useEffectOnce(() => {
+		if (!initializeChat.current) {
+			if (newConversationMessage) {
+				append({
+					content: newConversationMessage,
+					role: "user",
+					id: TwitterSnowflake.generate().toString(),
+					createdAt: new Date(),
+				});
+			}
+			initializeChat.current = true;
+		}
+	});
+	const scrollRef = useRef<HTMLDivElement>(null);
+	const lastMessageRef = useRef<HTMLDivElement>(null);
+
+	useEffect(() => {
+		if (messages.length > 0) {
+			// Function to scroll to bottom
+			const scrollToBottom = () => {
+				if (lastMessageRef.current) {
+					lastMessageRef.current.scrollIntoView({ behavior: "smooth" });
+				}
+			};
+
+			scrollToBottom();
+
+			// Also scroll when messages are still streaming
+			const timer = setTimeout(scrollToBottom, 100);
+
+			return () => clearTimeout(timer);
+		}
+	}, [messages]); // Re-run when messages change
 
 	return (
 		<div className="w-full flex flex-col h-full overflow-hidden">
-			<div className="px-3 pt-2 flex-1 overflow-auto">
+			<div className="px-3 pt-2 flex-1 overflow-auto" ref={scrollRef}>
 				<ScrollArea className="h-full overflow-y-auto pr-4">
-					<Outlet />
+					{messages.map((message, index) => (
+						<div
+							key={message.id}
+							ref={index === messages.length - 1 ? lastMessageRef : null}
+						>
+							<ChatBubble
+								key={message.id}
+								text={message.content}
+								isBot={message.role === "assistant"}
+							/>
+						</div>
+					))}
 				</ScrollArea>
 			</div>
+
 			<AppChatbox
+				handleInputChange={handleInputChange}
+				handleSend={handleSubmit}
+				input={input}
+				isLoading={isLoading}
 				availableModels={availableModels}
-				storedMessages={messages.map((message) => ({
-					id: message.id,
-					content: message.content,
-					role: message.role,
-					createdAt: new Date(message.createdAt),
-				}))}
-				initialMessage={initialMessage}
-				model={model || initialModel}
+				lastUsedModel={model}
 				sessionId={sessionId}
 			/>
 		</div>
@@ -87,5 +177,5 @@ export function ErrorBoundary() {
 		);
 	}
 
-	return <>Unknown Error</>;
+	return <div>Unknown Error</div>;
 }
