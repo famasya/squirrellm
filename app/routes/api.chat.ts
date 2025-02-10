@@ -6,9 +6,12 @@ import { messages as messagesTable } from "~/lib/db.schema";
 
 export async function action({ request }: ActionFunctionArgs) {
 	try {
-		const { messages, sessionId, model, messageId } = await request.json();
-		if (!sessionId || !model || !messageId) {
-			throw new Error("Session id and model are required");
+		const url = new URL(request.url).searchParams;
+		const model = url.get("model");
+		const sessionId = url.get("sessionId");
+		const { messages } = await request.json();
+		if (!messages || !model || !sessionId) {
+			throw new Error("Messages are required");
 		}
 
 		const openrouter = createOpenRouter({
@@ -55,6 +58,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
 		return result.toDataStreamResponse();
 	} catch (e) {
-		return Response.json({ error: e }, { status: 400 });
+		const err = e as unknown as Error;
+		return Response.json({ error: err.message }, { status: 400 });
 	}
 }

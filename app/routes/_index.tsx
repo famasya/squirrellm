@@ -1,13 +1,20 @@
 import type { ActionFunctionArgs } from "@remix-run/node";
-import { Form, redirect, useLoaderData, useNavigation } from "@remix-run/react";
+import {
+	Form,
+	redirect,
+	useActionData,
+	useLoaderData,
+	useNavigate,
+	useNavigation,
+} from "@remix-run/react";
 import { TwitterSnowflake } from "@sapphire/snowflake";
 import { Loader2, Send, Squirrel } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { SearchableSelect } from "~/components/ui/searchable-select";
 import { db } from "~/lib/db";
-import { messages, models as modelsTable, sessions } from "~/lib/db.schema";
+import { models as modelsTable, sessions } from "~/lib/db.schema";
 import useChatStore from "~/lib/stores";
 
 export async function action({ request }: ActionFunctionArgs) {
@@ -25,35 +32,39 @@ export async function action({ request }: ActionFunctionArgs) {
 		name: message as string,
 	});
 
-	// insert first message
-	const messageId = TwitterSnowflake.generate().toString();
-	await db.insert(messages).values({
-		id: messageId,
-		role: "user",
-		createdAt: new Date().getTime(),
-		content: message as string,
-		model: model as string,
-		sessionId: id,
-	});
-
-	return redirect(`/chat/${id}`);
+	return Response.json({ id });
 }
 
 export async function loader() {
 	const models = await db.select().from(modelsTable);
 	if (models.length === 0) {
-		return redirect("/settings");
+		return redirect("/settings?state=onboarding");
 	}
 	return { models };
 }
 
 export default function AppHome() {
 	const [message, setMessage] = useState("");
-	const { refreshSessions } = useChatStore();
 	const navigation = useNavigation();
+	const navigate = useNavigate();
 	const { models } = useLoaderData<typeof loader>();
+	const defaultModel =
+		models.find((model) => model.isDefault === 1) ?? models[0];
+	const [selectedModel, setSelectedModel] = useState(defaultModel.id);
+	const response = useActionData<{ id: string }>();
+	const { refreshSessions } = useChatStore();
 
-	const defaultModel = models.find((model) => model.isDefault === 1);
+	useEffect(() => {
+		if (response) {
+			refreshSessions();
+			navigate(`/chat/${response.id}`, {
+				state: {
+					initialModel: selectedModel,
+					initialMessage: message,
+				},
+			});
+		}
+	}, [response, navigate, selectedModel, message, refreshSessions]);
 
 	return (
 		<div className="flex h-full items-center justify-center">
@@ -80,6 +91,7 @@ export default function AppHome() {
 									navigation.state === "submitting" || models.length === 0
 								}
 								value={defaultModel?.id}
+								onChange={(value) => setSelectedModel(value.value)}
 								options={models.map((model) => ({
 									value: model.id,
 									label: model.name,

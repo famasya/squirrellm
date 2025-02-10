@@ -76,9 +76,9 @@ export default function Settings() {
 	const navigation = useNavigation();
 	const location = useLocation();
 	const { data: openrouterModels, isLoading } = useSWR(
-		"fetchModels",
-		async () => {
-			const request = await fetch("https://openrouter.ai/api/v1/models");
+		"https://openrouter.ai/api/v1/models",
+		async (url) => {
+			const request = await fetch(url);
 			const { data } = (await request.json()) as ModelListResponse;
 			return data;
 		},
@@ -111,7 +111,15 @@ export default function Settings() {
 
 	return (
 		<div className="ml-1">
-			<h1 className="text-lg font-bold">Settings</h1>
+			{location.search.includes("state=onboarding") && (
+				<div className="w-full p-2 rounded-sm mt-4 bg-white/10">
+					<p className="text-sm">
+						You must specify your default model and system message for your
+						client before proceeding.
+					</p>
+				</div>
+			)}
+			<h1 className="text-lg font-bold mt-4">Settings</h1>
 
 			<div className="w-full max-w-[600px] border-[1px] p-4 rounded-sm mt-4">
 				<h2 className="font-semibold">Add new model</h2>

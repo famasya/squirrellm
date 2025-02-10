@@ -5,26 +5,29 @@ import { Loader2, Send, Trash2 } from "lucide-react";
 import { useEffect } from "react";
 import { toast } from "sonner";
 import useSWRMutation from "swr/mutation";
+import { AlertDialogWrapper } from "~/components/ui/alert-dialog";
 import { AutosizeTextarea } from "~/components/ui/autosize-textarea";
 import { Button } from "~/components/ui/button";
 import { SearchableSelect } from "~/components/ui/searchable-select";
 import useChatStore from "~/lib/stores";
-import { AlertDialogWrapper } from "./ui/alert-dialog";
+
 type Props = {
-	initialMessages: {
+	storedMessages: {
 		id: string;
 		content: string;
 		role: string;
 		createdAt: Date;
 	}[];
+	initialMessage?: string;
 	model: string;
 	availableModels: { id: string; name: string }[];
 	sessionId: string;
 };
 
 export default function AppChatbox({
-	initialMessages,
+	storedMessages,
 	model,
+	initialMessage,
 	availableModels,
 	sessionId,
 }: Props) {
@@ -50,7 +53,7 @@ export default function AppChatbox({
 			},
 			onError: (error) => {
 				console.log(error);
-				toast.error("Error deleting chat");
+				toast.error("Error deleting chat. Please try again");
 			},
 		},
 	);
@@ -59,20 +62,23 @@ export default function AppChatbox({
 		messages,
 		input,
 		isLoading,
+		append,
 		handleInputChange,
 		handleSubmit,
-		append,
-		setMessages: setChatMessages,
 	} = useChat({
-		body: {
-			model: model,
-			sessionId: sessionId,
-		},
+		api: `/api/chat?sessionId=${sessionId}&model=${model}`,
+		sendExtraMessageFields: true,
+		initialMessages: storedMessages.map((message) => ({
+			content: message.content,
+			role: message.role as "assistant" | "user",
+			id: message.id,
+			createdAt: message.createdAt,
+		})),
 	});
-	const { setMessages } = useChatStore();
+	const { setSessionMessages } = useChatStore();
 
 	const handleSend = () => {
-		setMessages([
+		setSessionMessages([
 			...messages,
 			{
 				id: TwitterSnowflake.generate().toString(),
@@ -92,38 +98,33 @@ export default function AppChatbox({
 
 	useEffect(() => {
 		// store messages to store
-		const uniqueMessages = new Set(messages.map((message) => message.id));
-		setMessages(messages.map((message) => ({ ...message })));
-	}, [messages, setMessages]);
-
-	// handle initial messages
-	useEffect(() => {
-		if (initialMessages.length === 1) {
-			// auto send the first message
-			append({
-				id: initialMessages[0].id,
-				content: initialMessages[0].content,
-				role: "user",
-			});
-		} else {
-			// otherwise, set the messages and also convert them to chat messages
-			setMessages(
-				initialMessages.map((message) => ({
-					content: message.content,
-					role: message.role as "assistant" | "user",
-					id: message.id,
-				})),
-			);
-			setChatMessages(
-				initialMessages.map((message) => ({
-					content: message.content,
-					role: message.role as "assistant" | "user",
-					id: message.id,
-					createdAt: message.createdAt,
-				})),
-			);
+		if (messages.length > 0) {
+			setSessionMessages(messages.map((message) => ({ ...message })));
 		}
-	}, [initialMessages, append, setMessages, setChatMessages]);
+	}, [messages, setSessionMessages]);
+
+	useEffect(() => {
+		// set messages to store
+		setSessionMessages(
+			storedMessages.map((message) => ({
+				content: message.content,
+				id: message.id,
+				role: message.role as "assistant" | "user",
+				createdAt: new Date(message.createdAt),
+			})),
+		);
+	}, [storedMessages, setSessionMessages]);
+
+	useEffect(() => {
+		if (model && initialMessage && sessionId) {
+			append({
+				content: initialMessage,
+				role: "user",
+				id: TwitterSnowflake.generate().toString(),
+				createdAt: new Date(),
+			});
+		}
+	}, [append, initialMessage, model, sessionId]);
 
 	return (
 		<div>
@@ -132,6 +133,7 @@ export default function AppChatbox({
 					<AutosizeTextarea
 						className="flex-1"
 						value={input}
+						disabled={isMutating}
 						onKeyDown={handleKeyDown}
 						placeholder={"Ask me anything... (Shift + Enter for new line)"}
 						onChange={handleInputChange}
@@ -156,13 +158,13 @@ export default function AppChatbox({
 								}}
 								cancelAction={() => {}}
 							>
-								<Button variant={"ghost"} size={"icon"}>
+								<Button disabled={isMutating} variant={"ghost"} size={"icon"}>
 									<Trash2 />
 								</Button>
 							</AlertDialogWrapper>
 
 							<Button
-								disabled={isLoading}
+								disabled={isLoading || isMutating}
 								onClick={handleSend}
 								className="flex items-center justify-center"
 							>

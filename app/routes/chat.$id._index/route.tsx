@@ -1,7 +1,7 @@
-import ChatBubble from "~/components/chat-bubble";
 import useChatStore from "~/lib/stores";
+import ChatBubble from "./chat-bubble";
 
-export default function AppRoute() {
+export default function ChatRoute() {
 	const { messages } = useChatStore();
 
 	return (
