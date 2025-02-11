@@ -1,4 +1,5 @@
 import TeX from "@matejmazur/react-katex";
+import type { UseChatHelpers } from "ai/react";
 import { format } from "date-fns";
 import { Squirrel } from "lucide-react";
 import Markdown, { RuleType } from "markdown-to-jsx";
@@ -6,26 +7,24 @@ import { Avatar, AvatarFallback } from "~/components/ui/avatar";
 import { cn } from "~/lib/utils";
 
 type Props = {
-	text: string;
 	isBot?: boolean;
 	model?: string;
 	isThinking?: boolean;
-	createdAt: Date;
+	message: UseChatHelpers['messages'][0];
 };
 
 export default function ChatBubble({
-	text,
 	isBot,
 	model,
 	isThinking,
-	createdAt,
+	message
 }: Props) {
 	const showThinking = isBot && isThinking;
 	return (
 		<div>
 			{!isBot && (
 				<div className="text-sm text-gray-500 text-right mr-3 mb-1">
-					You at {format(createdAt, "HH:mm")}
+					You at {format(message.createdAt || Date.now(), "HH:mm")}
 				</div>
 			)}
 			<div
@@ -58,29 +57,42 @@ export default function ChatBubble({
 									is thinking...
 								</span>
 							) : (
-								<span>at {format(createdAt, "HH:mm")}</span>
+								<span>at {format(message.createdAt || Date.now(), "HH:mm")}</span>
 							)}
 						</div>
 					)}
-					<Markdown
-						className="markdown-content"
-						options={{
-							forceBlock: true,
-							renderRule(next, node, renderChildren, state) {
-								if (node.type === RuleType.codeBlock && node.lang === "latex") {
-									return (
-										<TeX
-											as="div"
-											key={state.key}
-										>{String.raw`${node.text}`}</TeX>
-									);
-								}
-								return next();
-							},
-						}}
-					>
-						{text}
-					</Markdown>
+
+					{message.parts.map((part, index) => {
+						if (part.type === "reasoning") {
+							return <div key={index.toString()} className="reasoning">
+								{part.reasoning}
+							</div>
+						}
+
+						if (part.type === "text") {
+							return <Markdown
+								key={index.toString()}
+								className="markdown-content"
+								options={{
+									forceBlock: true,
+									renderRule(next, node, renderChildren, state) {
+										if (node.type === RuleType.codeBlock && node.lang === "latex") {
+											return (
+												<TeX
+													as="div"
+													key={state.key}
+												>{String.raw`${node.text}`}</TeX>
+											);
+										}
+										return next();
+									},
+								}}
+							>
+								{message.content}
+							</Markdown>
+
+						}
+					})}
 				</div>
 			</div>
 		</div>

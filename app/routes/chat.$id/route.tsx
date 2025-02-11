@@ -1,9 +1,8 @@
 import type { LoaderFunctionArgs } from "@remix-run/node";
 import {
 	isRouteErrorResponse,
-	redirect,
 	useLoaderData,
-	useRouteError,
+	useRouteError
 } from "@remix-run/react";
 import { TwitterSnowflake } from "@sapphire/snowflake";
 import { useChat } from "ai/react";
@@ -48,10 +47,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
 	// set the model to the last message
 	const lastMessage = messages[messages.length - 1];
-	const model = lastMessage?.model || conversation?.model;
-	if (!model) {
-		return redirect("/settings?state=onboarding");
-	}
+	const model = lastMessage?.model || conversation?.model as string;
 
 	return {
 		previousMessages: messages,
@@ -173,10 +169,9 @@ export default function ChatLayout() {
 							>
 								<ChatBubble
 									isThinking={nowThinking}
-									text={message.content}
-									createdAt={new Date(message.createdAt || 0)}
 									model={messageModelUsed?.model || selectedModel.model}
 									isBot={message.role === "assistant"}
+									message={message}
 								/>
 							</div>
 						);

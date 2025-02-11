@@ -44,6 +44,11 @@ export function SearchableSelect({
 	const [open, setOpen] = React.useState(false);
 	const [selectedValue, setSelectedValue] = React.useState(value);
 
+	const placeholderValue = React.useMemo(() => {
+		const label = options.find((option) => option.value === value)?.label;
+		return label && label.length > 30 ? `${label.substring(0, 30)}...` : label;
+	}, [options, value]);
+
 	return (
 		<Popover open={open} onOpenChange={setOpen}>
 			<PopoverTrigger asChild disabled={props.disabled}>
@@ -53,7 +58,7 @@ export function SearchableSelect({
 					className="w-full justify-between rounded-full truncate overflow-hidden border-2"
 				>
 					{value
-						? `${options.find((option) => option.value === value)?.label.substring(0, 30)}...`
+						? placeholderValue
 						: placeholder}
 					<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 				</Button>

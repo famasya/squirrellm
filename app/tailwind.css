@@ -96,24 +96,24 @@ body {
 
 	/* Base text styling */
 	.markdown-content {
-		@apply text-white leading-relaxed;
+		@apply dark:text-white leading-relaxed;
 	}
 
 	/* Headings */
 	.markdown-content h1 {
-		@apply text-4xl font-bold mb-6 mt-8 text-gray-900;
+		@apply text-3xl font-bold my-2 dark:text-white text-gray-900;
 	}
 
 	.markdown-content h2 {
-		@apply text-3xl font-bold mb-4 mt-6 text-gray-900;
+		@apply text-2xl font-bold my-2 dark:text-white text-gray-900;
 	}
 
 	.markdown-content h3 {
-		@apply text-2xl font-semibold mb-3 mt-5 text-gray-900;
+		@apply text-xl font-semibold my-2 dark:text-white text-gray-900;
 	}
 
 	.markdown-content h4 {
-		@apply text-xl font-semibold mb-2 mt-4 text-gray-900;
+		@apply text-lg font-semibold my-2 dark:text-white text-gray-900;
 	}
 
 	/* Paragraphs and spacing */
@@ -181,7 +181,7 @@ body {
 
 	/* Code blocks */
 	.markdown-content pre {
-		@apply bg-slate-800 max-w-xl font-mono rounded-lg py-2 px-4 my-2 overflow-x-auto;
+		@apply bg-slate-800 max-w-xl font-mono rounded-lg py-2 px-4 my-4 overflow-x-auto text-sm;
 	}
 
 	.markdown-content code {
@@ -209,7 +209,7 @@ body {
 
 	/* Horizontal rules */
 	.markdown-content hr {
-		@apply my-8 border-t border-gray-300;
+		@apply my-6 border-t border-gray-300;
 	}
 
 	/* Images */
@@ -228,5 +228,9 @@ body {
 
 	.gradient-black {
 		@apply bg-gradient-to-t from-sidebar-foreground/10 to-sidebar-foreground/20 border-sidebar-foreground/10;
+	}
+
+	.reasoning {
+		@apply text-gray-500 ml-4 text-sm italic;
 	}
 }

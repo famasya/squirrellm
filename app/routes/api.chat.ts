@@ -3,8 +3,10 @@ import type { ActionFunctionArgs } from "@remix-run/node";
 import {
 	type Message,
 	createDataStreamResponse,
+	extractReasoningMiddleware,
 	smoothStream,
 	streamText,
+	wrapLanguageModel,
 } from "ai";
 import { db } from "~/lib/db";
 import { messages as messagesTable } from "~/lib/db.schema";
@@ -44,8 +46,12 @@ export async function action({ request }: ActionFunctionArgs) {
 			execute: (dataStream) => {
 				dataStream.writeData("<thinking>");
 
-				const result = streamText({
+				const aiModel = wrapLanguageModel({
 					model: openrouter(model),
+					middleware: extractReasoningMiddleware({ tagName: "think" }),
+				});
+				const result = streamText({
+					model: aiModel,
 					messages,
 					...(instruction && { system: instruction }),
 					onChunk: () => {
@@ -78,7 +84,10 @@ export async function action({ request }: ActionFunctionArgs) {
 					}),
 				});
 
-				result.mergeIntoDataStream(dataStream);
+				result.mergeIntoDataStream(dataStream, {
+					sendUsage: true,
+					sendReasoning: true,
+				});
 			},
 			onError: (error) => {
 				return error instanceof Error ? error.message : String(error);
