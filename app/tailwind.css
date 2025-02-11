@@ -231,6 +231,9 @@ body {
 	}
 
 	.reasoning {
-		@apply text-gray-500 ml-4 text-sm italic;
+		@apply px-6 py-2 leading-7 rounded-md text-sm space-y-2;
+	}
+	.reasoning span {
+		@apply text-sm leading-6;
 	}
 }

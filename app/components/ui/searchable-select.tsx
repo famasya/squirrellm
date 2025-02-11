@@ -57,9 +57,7 @@ export function SearchableSelect({
 					aria-expanded={open}
 					className="w-full justify-between rounded-full truncate overflow-hidden border-2"
 				>
-					{value
-						? placeholderValue
-						: placeholder}
+					{value ? placeholderValue : placeholder}
 					<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 				</Button>
 			</PopoverTrigger>

@@ -59,6 +59,7 @@ export default function AppSidebar() {
 			},
 		},
 	);
+	const { isGeneratingResponse } = useChatStore();
 
 	const conversations = data?.flat();
 	const isActive = (id: string) => params.id === id;
@@ -89,37 +90,40 @@ export default function AppSidebar() {
 							<SidebarMenu>
 								{isLoading
 									? Array(3)
-										.fill(0)
-										.map((_, i) => (
-											<SidebarMenuItem key={i.toString()}>
-												<Skeleton className="h-6 w-full mb-2" />
-											</SidebarMenuItem>
-										))
+											.fill(0)
+											.map((_, i) => (
+												<SidebarMenuItem key={i.toString()}>
+													<Skeleton className="h-6 w-full mb-2" />
+												</SidebarMenuItem>
+											))
 									: conversations?.map((conversation) => (
-										<SidebarMenuItem key={conversation.id}>
-											<SidebarMenuButton asChild>
-												<NavLink
-													to={`/chat/${conversation.id}`}
-													className={cn(
-														isActive(conversation.id) &&
-														"bg-sidebar-accent text-sidebar-accent-foreground",
-													)}
-												>
-													<div className="flex flex-row gap-2 items-center w-full">
-														<div>
-															<MessageSquare className="w-4 h-4" />
+											<SidebarMenuItem key={conversation.id}>
+												<NavLink to={`/chat/${conversation.id}`}>
+													<SidebarMenuButton
+														disabled={isGeneratingResponse}
+														className={cn(
+															isActive(conversation.id) &&
+																"bg-sidebar-accent text-sidebar-accent-foreground",
+														)}
+													>
+														<div className="flex flex-row gap-2 items-center w-full">
+															<div>
+																<MessageSquare className="w-4 h-4" />
+															</div>
+															<div className="w-full">
+																{conversation.name.length < 20
+																	? conversation.name
+																	: `${conversation.name.slice(0, 20)}...`}
+															</div>
 														</div>
-														<div className="w-full">
-															{conversation.name.length < 20
-																? conversation.name
-																: `${conversation.name.slice(0, 20)}...`}
-														</div>
-													</div>
+													</SidebarMenuButton>
 												</NavLink>
-											</SidebarMenuButton>
-											<ConversationOptions id={conversation.id} />
-										</SidebarMenuItem>
-									))}
+												<ConversationOptions
+													disabled={isGeneratingResponse}
+													id={conversation.id}
+												/>
+											</SidebarMenuItem>
+										))}
 								<SidebarMenuItem className="mt-1">
 									<SidebarMenuButton
 										disabled={!nextCursor}

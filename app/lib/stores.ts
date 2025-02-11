@@ -1,16 +1,15 @@
-import type { Message } from "ai/react";
 import { create } from "zustand";
 
 type ChatStore = {
-	conversationMessages: Message[];
-	setConversationMessages: (messages: Message[]) => void;
+	isGeneratingResponse: boolean;
+	setIsGeneratingResponse: (isGeneratingResponse: boolean) => void;
 	refreshConversationsListKey: number;
 	refreshConversationsList: () => void;
 };
 const useChatStore = create<ChatStore>((set) => ({
-	conversationMessages: [],
-	setConversationMessages: (messages) =>
-		set({ conversationMessages: messages }),
+	isGeneratingResponse: false,
+	setIsGeneratingResponse: (isGeneratingResponse) =>
+		set(() => ({ isGeneratingResponse })),
 	refreshConversationsListKey: 0,
 	refreshConversationsList: () =>
 		set((state) => ({

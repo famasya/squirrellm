@@ -3,23 +3,33 @@ import type { UseChatHelpers } from "ai/react";
 import { format } from "date-fns";
 import { Squirrel } from "lucide-react";
 import Markdown, { RuleType } from "markdown-to-jsx";
+import {
+	Accordion,
+	AccordionContent,
+	AccordionItem,
+	AccordionTrigger,
+} from "~/components/ui/accordion";
 import { Avatar, AvatarFallback } from "~/components/ui/avatar";
 import { cn } from "~/lib/utils";
 
 type Props = {
 	isBot?: boolean;
 	model?: string;
+	ref?: React.RefObject<HTMLDivElement>;
 	isThinking?: boolean;
-	message: UseChatHelpers['messages'][0];
+	message: UseChatHelpers["messages"][0];
 };
 
 export default function ChatBubble({
 	isBot,
 	model,
+	ref,
 	isThinking,
-	message
+	message,
 }: Props) {
 	const showThinking = isBot && isThinking;
+	const containsReasoning =
+		message.parts.find((part) => part.type === "reasoning") !== undefined;
 	return (
 		<div>
 			{!isBot && (
@@ -43,7 +53,7 @@ export default function ChatBubble({
 				)}
 				<div>
 					{isBot && (
-						<div className="text-sm text-gray-500 flex flex-row items-center gap-2">
+						<div className="text-sm text-gray-500 flex flex-row items-center gap-2 mb-2">
 							<a
 								href={`https://openrouter.ai/${model}`}
 								target="_blank"
@@ -57,42 +67,70 @@ export default function ChatBubble({
 									is thinking...
 								</span>
 							) : (
-								<span>at {format(message.createdAt || Date.now(), "HH:mm")}</span>
+								<span>
+									at {format(message.createdAt || Date.now(), "HH:mm")}
+								</span>
 							)}
 						</div>
 					)}
 
-					{message.parts.map((part, index) => {
-						if (part.type === "reasoning") {
-							return <div key={index.toString()} className="reasoning">
-								{part.reasoning}
-							</div>
-						}
+					<Accordion
+						type="single"
+						collapsible
+						className={cn(
+							"bg-dark/10 dark:bg-white/10 rounded-lg my-2",
+							!containsReasoning && "hidden",
+						)}
+						defaultValue={message.id}
+					>
+						<AccordionItem value={message.id}>
+							<AccordionTrigger className="m-0 py-2 px-6">
+								Reasoning
+							</AccordionTrigger>
+							<AccordionContent className="p-0">
+								{message.parts.map((part, index) => {
+									if (part.type === "reasoning") {
+										return (
+											<div key={index.toString()} className="reasoning">
+												{part.reasoning.split(". ").map((reason, index) => {
+													return (
+														<span key={index.toString()}>
+															{reason}. <br />
+														</span>
+													);
+												})}
+											</div>
+										);
+									}
+								})}
+							</AccordionContent>
+						</AccordionItem>
+					</Accordion>
 
-						if (part.type === "text") {
-							return <Markdown
-								key={index.toString()}
-								className="markdown-content"
-								options={{
-									forceBlock: true,
-									renderRule(next, node, renderChildren, state) {
-										if (node.type === RuleType.codeBlock && node.lang === "latex") {
-											return (
-												<TeX
-													as="div"
-													key={state.key}
-												>{String.raw`${node.text}`}</TeX>
-											);
-										}
-										return next();
-									},
-								}}
-							>
-								{message.content}
-							</Markdown>
-
-						}
-					})}
+					<div ref={ref}>
+						<Markdown
+							className="markdown-content"
+							options={{
+								forceBlock: true,
+								renderRule(next, node, renderChildren, state) {
+									if (
+										node.type === RuleType.codeBlock &&
+										node.lang === "latex"
+									) {
+										return (
+											<TeX
+												as="div"
+												key={state.key}
+											>{String.raw`${node.text}`}</TeX>
+										);
+									}
+									return next();
+								},
+							}}
+						>
+							{message.content}
+						</Markdown>
+					</div>
 				</div>
 			</div>
 		</div>

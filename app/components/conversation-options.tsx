@@ -9,6 +9,7 @@ import {
 	AlertDialogAction,
 	AlertDialogCancel,
 	AlertDialogContent,
+	AlertDialogDescription,
 	AlertDialogFooter,
 	AlertDialogHeader,
 	AlertDialogTitle,
@@ -23,8 +24,9 @@ import { SidebarMenuAction } from "./ui/sidebar";
 
 type Props = {
 	id: string;
+	disabled: boolean;
 };
-export default function ConversationOptions({ id }: Props) {
+export default function ConversationOptions({ id, disabled }: Props) {
 	const [open, setOpen] = useState(false);
 	const navigate = useNavigate();
 	const { refreshConversationsList } = useChatStore();
@@ -57,7 +59,11 @@ export default function ConversationOptions({ id }: Props) {
 	return (
 		<>
 			<DropdownMenu>
-				<DropdownMenuTrigger asChild>
+				<DropdownMenuTrigger
+					disabled={disabled}
+					asChild
+					className="cursor-default"
+				>
 					<SidebarMenuAction>
 						<MoreHorizontal />
 					</SidebarMenuAction>
@@ -74,6 +80,10 @@ export default function ConversationOptions({ id }: Props) {
 					<AlertDialogHeader>
 						<AlertDialogTitle>Delete conversation?</AlertDialogTitle>
 					</AlertDialogHeader>
+					<AlertDialogDescription>
+						Are you sure you want to delete this conversation? This action
+						cannot be undone.
+					</AlertDialogDescription>
 					<AlertDialogFooter>
 						<AlertDialogCancel
 							disabled={isMutating}

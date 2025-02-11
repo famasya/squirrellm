@@ -47,14 +47,17 @@ export async function action({ request }: ActionFunctionArgs) {
 				dataStream.writeData("<thinking>");
 
 				const aiModel = wrapLanguageModel({
-					model: openrouter(model),
+					model: openrouter(model, {
+						includeReasoning: true,
+					}),
 					middleware: extractReasoningMiddleware({ tagName: "think" }),
 				});
 				const result = streamText({
 					model: aiModel,
+					abortSignal: request.signal,
 					messages,
 					...(instruction && { system: instruction }),
-					onChunk: () => {
+					onChunk: (chunk) => {
 						dataStream.writeMessageAnnotation({ model: model });
 					},
 					onFinish: async (response) => {

@@ -2,10 +2,10 @@ import type { LoaderFunctionArgs } from "@remix-run/node";
 import {
 	isRouteErrorResponse,
 	useLoaderData,
-	useRouteError
+	useRouteError,
 } from "@remix-run/react";
 import { TwitterSnowflake } from "@sapphire/snowflake";
-import { useChat } from "ai/react";
+import { type Message, useChat } from "ai/react";
 import { format } from "date-fns";
 import { eq } from "drizzle-orm";
 import { CircleAlert } from "lucide-react";
@@ -18,6 +18,7 @@ import {
 	messages as messagesTable,
 	models,
 } from "~/lib/db.schema";
+import useChatStore from "~/lib/stores";
 import { cn, useEffectOnce } from "~/lib/utils";
 import { getSession } from "~/sessions";
 import AppChatbox from "./app-chatbox";
@@ -47,7 +48,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
 	// set the model to the last message
 	const lastMessage = messages[messages.length - 1];
-	const model = lastMessage?.model || conversation?.model as string;
+	const model = lastMessage?.model || (conversation?.model as string);
 
 	return {
 		previousMessages: messages,
@@ -98,18 +99,50 @@ export default function ChatLayout() {
 				"model-instruction": selectedModel.instruction,
 			}),
 		},
-		initialMessages: previousMessages.map((message) => ({
-			content: message.content,
-			role: message.role as "assistant" | "user",
-			id: message.id,
-			annotations: [{ model: message.model }],
-			createdAt: new Date(message.createdAt),
-		})),
+		initialMessages: previousMessages.map((message) => {
+			const parts: Message["parts"] = [
+				{
+					type: "text",
+					text: message.content,
+				},
+			];
+
+			if (message.reasoning) {
+				parts.push({
+					type: "reasoning",
+					reasoning: message.reasoning,
+				});
+			}
+
+			return {
+				content: message.content,
+				role: message.role as "assistant" | "user",
+				id: message.id,
+				parts: parts,
+				annotations: [{ model: message.model }],
+				createdAt: new Date(message.createdAt),
+			};
+		}),
 		onError: (error) => {
 			console.error(error);
 			toast.error(error.message);
 		},
 	});
+	const { setIsGeneratingResponse } = useChatStore();
+
+	useEffect(() => {
+		setIsGeneratingResponse(isLoading);
+	}, [isLoading, setIsGeneratingResponse]);
+
+	useEffect(() => {
+		const lastModelInstruction =
+			availableModels.find((m) => m.id === model)?.systemMessage || undefined;
+
+		selectModel({
+			model: model,
+			instruction: newConversationModelInstruction || lastModelInstruction,
+		});
+	}, [model, newConversationModelInstruction, availableModels]);
 
 	// if this is a new conversation, execute initial message
 	useEffectOnce(() => {
@@ -125,12 +158,12 @@ export default function ChatLayout() {
 			initializeChat.current = true;
 		}
 	});
+
 	const scrollRef = useRef<HTMLDivElement>(null);
 	const lastMessageRef = useRef<HTMLDivElement>(null);
-
+	// scroll to bottom when messages change
 	useEffect(() => {
 		if (messages.length > 0) {
-			// Function to scroll to bottom
 			const scrollToBottom = () => {
 				if (lastMessageRef.current) {
 					lastMessageRef.current.scrollIntoView({ behavior: "smooth" });
@@ -142,44 +175,50 @@ export default function ChatLayout() {
 			const timer = setTimeout(scrollToBottom, 100);
 			return () => clearTimeout(timer);
 		}
-	}, [messages]); // Re-run when messages change
+	}, [messages]);
 
 	return (
 		<div className="w-full flex flex-col h-full overflow-hidden">
 			<div className="px-3 pt-2 flex-1 overflow-auto" ref={scrollRef}>
 				<ScrollArea className="h-full overflow-y-auto pr-4" type="always">
-					<div className="text-center text-gray-500 text-sm">
-						Conversation begins at{" "}
-						{format(messages[0]?.createdAt || Date.now(), "dd/MM/yy HH:mm")}
+					<div className="min-h-[100%]">
+						<div className="text-center text-gray-500 text-sm">
+							Conversation begins at{" "}
+							{format(messages[0]?.createdAt || Date.now(), "dd/MM/yy HH:mm")}
+						</div>
+						{messages.map((message, index) => {
+							const messageModelUsed = message.annotations?.[0] as
+								| undefined
+								| { model: string };
+							const isLastMessage = index === messages.length - 1;
+							const nowThinking =
+								data?.includes("<thinking>") &&
+								!data.includes("<done>") &&
+								isLastMessage;
+							return (
+								<div key={message.id} className={cn(isLastMessage && "mb-8")}>
+									<ChatBubble
+										isThinking={nowThinking}
+										model={messageModelUsed?.model || selectedModel.model}
+										isBot={message.role === "assistant"}
+										message={message}
+									/>
+								</div>
+							);
+						})}
+						{/* Add an empty div at the bottom as scroll target */}
+						<div ref={lastMessageRef} className="h-1" />
 					</div>
-					{messages.map((message, index) => {
-						const messageModelUsed = message.annotations?.[0] as
-							| undefined
-							| { model: string };
-						const isLastMessage = index === messages.length - 1;
-						const nowThinking =
-							data?.includes("<thinking>") &&
-							!data.includes("<done>") &&
-							isLastMessage;
-						return (
-							<div
-								key={message.id}
-								ref={isLastMessage ? lastMessageRef : null}
-								className={cn(isLastMessage && "mb-8")}
-							>
-								<ChatBubble
-									isThinking={nowThinking}
-									model={messageModelUsed?.model || selectedModel.model}
-									isBot={message.role === "assistant"}
-									message={message}
-								/>
-							</div>
-						);
-					})}
 				</ScrollArea>
 			</div>
 
 			<AppChatbox
+				id={sessionId}
+				scrollToBottom={() => {
+					if (lastMessageRef.current) {
+						lastMessageRef.current.scrollIntoView({ behavior: "smooth" });
+					}
+				}}
 				stop={() => {
 					setData(undefined);
 					stop();
@@ -195,7 +234,7 @@ export default function ChatLayout() {
 				input={input}
 				isLoading={isLoading}
 				availableModels={availableModels}
-				lastUsedModel={model}
+				selectedModel={selectedModel.model}
 			/>
 		</div>
 	);

@@ -9,8 +9,7 @@ const buttonVariants = cva(
 	{
 		variants: {
 			variant: {
-				"gradient-black":
-					"gradient-black",
+				"gradient-black": "gradient-black",
 				default:
 					"bg-primary text-primary-foreground shadow hover:bg-primary/90",
 				destructive:
@@ -38,7 +37,7 @@ const buttonVariants = cva(
 
 export interface ButtonProps
 	extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-	VariantProps<typeof buttonVariants> {
+		VariantProps<typeof buttonVariants> {
 	asChild?: boolean;
 }
 

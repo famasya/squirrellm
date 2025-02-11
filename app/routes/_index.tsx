@@ -12,7 +12,7 @@ import {
 import { TwitterSnowflake } from "@sapphire/snowflake";
 import { CircleAlert, Loader2, Send, Squirrel } from "lucide-react";
 import { useEffect, useState } from "react";
-import { ClientOnly } from 'remix-utils/client-only';
+import { ClientOnly } from "remix-utils/client-only";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { SearchableSelect } from "~/components/ui/searchable-select";
@@ -132,8 +132,14 @@ export default function AppHome() {
 							/>
 						)}
 
-						<ClientOnly fallback={<Button disabled><Send /> Send</Button>}>
-							{() =>
+						<ClientOnly
+							fallback={
+								<Button disabled>
+									<Send /> Send
+								</Button>
+							}
+						>
+							{() => (
 								<Button
 									type="submit"
 									disabled={
@@ -153,7 +159,7 @@ export default function AppHome() {
 										</>
 									)}
 								</Button>
-							}
+							)}
 						</ClientOnly>
 					</div>
 				</Form>
