@@ -16,7 +16,7 @@ export const messages = s.sqliteTable("messages", {
 	completionToken: s.int().default(0),
 	totalToken: s.int().default(0),
 	reasoning: s.text(),
-	sessionId: s
+	conversationId: s
 		.text()
 		.notNull()
 		.references(() => conversations.id, { onDelete: "cascade" }),
@@ -25,6 +25,9 @@ export const messages = s.sqliteTable("messages", {
 export const models = s.sqliteTable("models", {
 	id: s.text().primaryKey(),
 	name: s.text().notNull(),
+	profile: s.text().notNull(),
+	temperature: s.text({ length: 5 }).default("1"),
 	systemMessage: s.text(),
+	metadata: s.text().notNull(), // store additional metadata
 	isDefault: s.int().default(0),
 });

@@ -1,9 +1,8 @@
 import {
 	ClerkApp,
-	ClerkProvider,
 	RedirectToSignIn,
 	SignedIn,
-	SignedOut,
+	SignedOut
 } from "@clerk/remix";
 import { rootAuthLoader } from "@clerk/remix/ssr.server";
 import type {
@@ -22,6 +21,7 @@ import { Loader2 } from "lucide-react";
 import { Suspense } from "react";
 import AppHeader from "./components/app-header";
 import AppSidebar from "./components/app-sidebar";
+import { GlobalErrorBoundary } from "./components/global-error-boundary";
 import { SidebarProvider } from "./components/ui/sidebar";
 import { Toaster } from "./components/ui/sonner";
 import { TooltipProvider } from "./components/ui/tooltip";
@@ -104,6 +104,11 @@ function App() {
 			</SignedOut>
 		</>
 	);
+}
+
+
+export function ErrorBoundary() {
+	return <GlobalErrorBoundary />;
 }
 
 export default ClerkApp(App);

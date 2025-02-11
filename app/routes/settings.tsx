@@ -6,7 +6,7 @@ import {
 	useLocation,
 	useNavigation,
 } from "@remix-run/react";
-import { eq } from "drizzle-orm";
+import { eq, ne } from "drizzle-orm";
 import { Edit, Loader2, Save, Trash } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -27,14 +27,16 @@ export async function loader() {
 
 export async function action({ request }: ActionFunctionArgs) {
 	const body = await request.formData();
-	const model = body.get("model");
-	const name = body.get("name");
-	const deleteId = body.get("deleteId");
-	const systemMessage = body.get("systemMessage");
-	const isDefault = body.get("isDefault") || 0;
+	const model = body.get("model")?.toString();
+	const name = body.get("name")?.toString();
+	const deleteId = body.get("deleteId")?.toString();
+	const systemMessage = body.get("systemMessage")?.toString();
+	const profile = body.get("profile")?.toString();
+	const metadata = body.get("metadata")?.toString();
+	const isDefault = body.get("isDefault") === "true" ? 1 : 0;
 
 	if (deleteId) {
-		await db.delete(modelsTable).where(eq(modelsTable.id, deleteId as string));
+		await db.delete(modelsTable).where(eq(modelsTable.id, deleteId));
 
 		if (isDefault) {
 			// if isDefault is deleted, set the next first model as default
@@ -49,23 +51,33 @@ export async function action({ request }: ActionFunctionArgs) {
 		return true;
 	}
 
-	if (!model || !name) {
-		throw new Error("Model and name are required");
+	if (!model || !name || !profile || !metadata) {
+		throw new Error("Invalid form data");
+	}
+
+	// if new default is set, make all others not default
+	if (isDefault) {
+		await db
+			.update(modelsTable)
+			.set({ isDefault: 0 })
+			.where(ne(modelsTable.id, model));
 	}
 
 	await db
 		.insert(modelsTable)
 		.values({
-			id: model as string,
-			name: name as string,
-			systemMessage: (systemMessage as string) || null,
-			isDefault: isDefault as number,
+			id: model,
+			name: name,
+			profile: profile,
+			systemMessage: systemMessage || null,
+			metadata: metadata,
+			isDefault: isDefault,
 		})
 		.onConflictDoUpdate({
 			set: {
-				name: name as string,
-				systemMessage: (systemMessage as string) || null,
-				isDefault: isDefault as number,
+				name: name,
+				systemMessage: systemMessage || null,
+				isDefault: isDefault,
 			},
 			target: modelsTable.id,
 		});
@@ -96,6 +108,7 @@ export default function Settings() {
 		id: "",
 		name: "",
 		systemMessage: "",
+		metadata: "{}",
 		isDefault: dbModels.length === 0,
 	});
 
@@ -112,6 +125,7 @@ export default function Settings() {
 			setFormValue({
 				id: "",
 				name: "",
+				metadata: "{}",
 				systemMessage: "",
 				isDefault: dbModels.length === 0,
 			});
@@ -141,12 +155,15 @@ export default function Settings() {
 						<Label htmlFor="model">Model</Label>
 						<SearchableSelect
 							disabled={isLoading || navigation.state === "submitting"}
-							onChange={(option) =>
+							onChange={(option) => {
+								const metadata = openrouterModels?.find((model) => model.id === option.value);
 								setFormValue({
 									...formValue,
 									id: option.value,
 									name: option.label,
+									metadata: JSON.stringify(metadata || "{}"),
 								})
+							}
 							}
 							placeholder="Select a model"
 							value={formValue.id}
@@ -203,6 +220,11 @@ export default function Settings() {
 								value={formValue.isDefault ? 1 : 0}
 							/>
 						</div>
+						<Input
+							type="hidden"
+							name="metadata"
+							value={formValue.metadata}
+						/>
 						<Button
 							type="submit"
 							disabled={
@@ -254,6 +276,7 @@ export default function Settings() {
 										setFormValue({
 											id: model.id,
 											name: model.name,
+											metadata: model.metadata,
 											systemMessage: model.systemMessage || "",
 											isDefault: model.isDefault === 1,
 										})

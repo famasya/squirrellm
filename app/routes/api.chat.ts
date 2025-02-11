@@ -11,18 +11,21 @@ import {
 import { db, redis } from "~/lib/db";
 import { messages as messagesTable } from "~/lib/db.schema";
 
-type Payload = Message & {
-	model: string;
-	instruction?: string;
-	conversationId: string;
+export type ChatPayload = {
+	message: Message & {
+		model: string;
+		instruction?: string;
+		conversationId: string;
+		temperature: string;
+	}
 };
 export async function action({ request }: ActionFunctionArgs) {
 	try {
-		const { message } = (await request.json()) as { message: Payload };
+		const { message } = (await request.json()) as ChatPayload;
 		if (!message) {
 			throw new Error("Messages are required");
 		}
-		const { model, instruction, conversationId } = message;
+		const { model, instruction, conversationId, temperature } = message;
 
 		const openrouter = createOpenRouter({
 			apiKey: process.env.OPENROUTER_API_KEY,
@@ -41,7 +44,7 @@ export async function action({ request }: ActionFunctionArgs) {
 				createdAt: new Date().getTime(),
 				content: message.content,
 				model: model,
-				sessionId: conversationId,
+				conversationId: conversationId,
 			})
 			.onConflictDoNothing();
 
@@ -59,6 +62,9 @@ export async function action({ request }: ActionFunctionArgs) {
 				const result = streamText({
 					model: aiModel,
 					abortSignal: request.signal,
+					experimental_continueSteps: true,
+					maxSteps: 5,
+					temperature: Number.parseFloat(temperature),
 					messages,
 					...(instruction && { system: instruction }),
 					onChunk: (chunk) => {
@@ -79,7 +85,7 @@ export async function action({ request }: ActionFunctionArgs) {
 									completionToken: response.usage.completionTokens,
 									totalToken: response.usage.totalTokens,
 									reasoning: response.reasoning,
-									sessionId: conversationId,
+									conversationId: conversationId,
 								})
 								.onConflictDoNothing();
 						}

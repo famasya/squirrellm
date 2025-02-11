@@ -1,18 +1,17 @@
 import type { ActionFunctionArgs } from "@remix-run/node";
 import {
 	Form,
-	isRouteErrorResponse,
 	redirect,
 	useActionData,
 	useLoaderData,
 	useNavigate,
-	useNavigation,
-	useRouteError,
+	useNavigation
 } from "@remix-run/react";
 import { TwitterSnowflake } from "@sapphire/snowflake";
-import { CircleAlert, Loader2, Send, Squirrel } from "lucide-react";
+import { Loader2, Send, Squirrel } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ClientOnly } from "remix-utils/client-only";
+import { GlobalErrorBoundary } from "~/components/global-error-boundary";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { SearchableSelect } from "~/components/ui/searchable-select";
@@ -169,27 +168,5 @@ export default function AppHome() {
 }
 
 export function ErrorBoundary() {
-	const error = useRouteError();
-	console.error(error);
-	if (isRouteErrorResponse(error)) {
-		return (
-			<div className="border border-red-400 p-2 rounded mt-6 bg-white/10">
-				<div className="text-red-400 flex flex-row gap-2">
-					<CircleAlert /> {error.statusText}
-				</div>
-			</div>
-		);
-	}
-
-	if (error instanceof Error) {
-		return (
-			<div className="border border-red-400 p-2 rounded mt-6 bg-white/10">
-				<div className="text-red-400 flex flex-row gap-2">
-					<CircleAlert /> {error.message}
-				</div>
-			</div>
-		);
-	}
-
-	return <div>Unknown Error</div>;
+	return <GlobalErrorBoundary />;
 }

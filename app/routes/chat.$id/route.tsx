@@ -1,16 +1,12 @@
 import type { LoaderFunctionArgs, MetaFunction } from "@remix-run/node";
-import {
-	isRouteErrorResponse,
-	useLoaderData,
-	useRouteError,
-} from "@remix-run/react";
+import { redirect, useLoaderData } from "@remix-run/react";
 import { TwitterSnowflake } from "@sapphire/snowflake";
 import { type Message, useChat } from "ai/react";
 import { format } from "date-fns";
 import { eq } from "drizzle-orm";
-import { CircleAlert } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { GlobalErrorBoundary } from "~/components/global-error-boundary";
 import { ScrollArea } from "~/components/ui/scroll-area";
 import { db, redis } from "~/lib/db";
 import {
@@ -21,6 +17,7 @@ import {
 import useChatStore from "~/lib/stores";
 import { cn, useEffectOnce } from "~/lib/utils";
 import { getSession } from "~/sessions";
+import type { ChatPayload } from "../api.chat";
 import AppChatbox from "./app-chatbox";
 import ChatBubble from "./chat-bubble";
 
@@ -42,21 +39,34 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 	const messages = await db
 		.select()
 		.from(messagesTable)
-		.where(eq(messagesTable.sessionId, params.id));
+		.where(eq(messagesTable.conversationId, params.id));
 
+	// if neither messages or conversation is present, redirect to home
+	if (!messages.length || !conversation) {
+		return redirect("/");
+	}
+	const pageTitle = messages[0]?.content || conversation.message;
+
+	// find model from chat initialization or last message
 	const availableModels = await db.select().from(models);
-
-	// set the model to the last message
 	const lastMessage = messages[messages.length - 1];
-	const model = lastMessage?.model || (conversation?.model as string);
+	const messageModel = availableModels.find(
+		(m) => m.id === lastMessage?.model || conversation?.model,
+	);
+
+	// if model not found, redirect to home
+	if (!messageModel) {
+		return redirect("/");
+	}
 
 	// store messages to redis for 1 hour
 	await redis.set(params.id, JSON.stringify(messages), "EX", 3600);
 
 	return {
 		previousMessages: messages,
-		pageTitle: messages?.[0]?.content || conversation?.message || "-",
-		model,
+		pageTitle: pageTitle,
+		model: messageModel.id,
+		temperature: messageModel.temperature,
 		conversationId: params.id,
 		availableModels,
 		newConversationMessage: conversation?.message,
@@ -67,7 +77,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 export const meta: MetaFunction<typeof loader> = ({ data }) => {
 	return [
 		{
-			title: data?.pageTitle || "-",
+			title: data?.pageTitle || "OpenRouter Chat",
 		},
 	];
 };
@@ -131,14 +141,16 @@ export default function ChatLayout() {
 		}),
 		experimental_prepareRequestBody: ({ messages }) => {
 			// send last message only to reduce payload
-			return {
+			const payload: ChatPayload = {
 				message: {
 					...messages[messages.length - 1],
 					model: selectedModel.model,
 					conversationId: conversationId,
 					instruction: selectedModel.instruction,
+					temperature: "1",
 				},
 			};
+			return payload;
 		},
 		onError: (error) => {
 			console.error(error);
@@ -260,27 +272,5 @@ export default function ChatLayout() {
 }
 
 export function ErrorBoundary() {
-	const error = useRouteError();
-	console.error(error);
-	if (isRouteErrorResponse(error)) {
-		return (
-			<div className="border border-red-400 p-2 rounded mt-6 bg-white/10">
-				<div className="text-red-400 flex flex-row gap-2">
-					<CircleAlert /> {error.statusText}
-				</div>
-			</div>
-		);
-	}
-
-	if (error instanceof Error) {
-		return (
-			<div className="border border-red-400 p-2 rounded mt-6 bg-white/10">
-				<div className="text-red-400 flex flex-row gap-2">
-					<CircleAlert /> {error.message}
-				</div>
-			</div>
-		);
-	}
-
-	return <div>Unknown Error</div>;
+	return <GlobalErrorBoundary />;
 }
