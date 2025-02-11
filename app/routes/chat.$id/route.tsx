@@ -1,4 +1,4 @@
-import type { LoaderFunctionArgs } from "@remix-run/node";
+import type { LoaderFunctionArgs, MetaFunction } from "@remix-run/node";
 import {
 	isRouteErrorResponse,
 	useLoaderData,
@@ -12,7 +12,7 @@ import { CircleAlert } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ScrollArea } from "~/components/ui/scroll-area";
-import { db } from "~/lib/db";
+import { db, redis } from "~/lib/db";
 import {
 	conversations,
 	messages as messagesTable,
@@ -50,21 +50,33 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 	const lastMessage = messages[messages.length - 1];
 	const model = lastMessage?.model || (conversation?.model as string);
 
+	// store messages to redis for 1 hour
+	await redis.set(params.id, JSON.stringify(messages), "EX", 3600);
+
 	return {
 		previousMessages: messages,
+		pageTitle: messages?.[0]?.content || conversation?.message || "-",
 		model,
-		sessionId: params.id,
+		conversationId: params.id,
 		availableModels,
 		newConversationMessage: conversation?.message,
 		newConversationModelInstruction: conversation?.instruction,
 	};
 }
 
+export const meta: MetaFunction<typeof loader> = ({ data }) => {
+	return [
+		{
+			title: data?.pageTitle || "-",
+		},
+	];
+};
+
 export default function ChatLayout() {
 	const {
 		previousMessages,
 		model,
-		sessionId,
+		conversationId,
 		availableModels,
 		newConversationMessage,
 		newConversationModelInstruction,
@@ -92,13 +104,7 @@ export default function ChatLayout() {
 		handleInputChange,
 		handleSubmit,
 	} = useChat({
-		api: `/api/chat?sessionId=${sessionId}&model=${selectedModel.model}`,
 		sendExtraMessageFields: true,
-		headers: {
-			...(selectedModel.instruction && {
-				"model-instruction": selectedModel.instruction,
-			}),
-		},
 		initialMessages: previousMessages.map((message) => {
 			const parts: Message["parts"] = [
 				{
@@ -123,6 +129,17 @@ export default function ChatLayout() {
 				createdAt: new Date(message.createdAt),
 			};
 		}),
+		experimental_prepareRequestBody: ({ messages }) => {
+			// send last message only to reduce payload
+			return {
+				message: {
+					...messages[messages.length - 1],
+					model: selectedModel.model,
+					conversationId: conversationId,
+					instruction: selectedModel.instruction,
+				},
+			};
+		},
 		onError: (error) => {
 			console.error(error);
 			toast.error(error.message);
@@ -134,6 +151,8 @@ export default function ChatLayout() {
 		setIsGeneratingResponse(isLoading);
 	}, [isLoading, setIsGeneratingResponse]);
 
+	console.log(messages);
+	// update model and instruction when model changes
 	useEffect(() => {
 		const lastModelInstruction =
 			availableModels.find((m) => m.id === model)?.systemMessage || undefined;
@@ -172,7 +191,7 @@ export default function ChatLayout() {
 			scrollToBottom();
 
 			// Also scroll when messages are still streaming
-			const timer = setTimeout(scrollToBottom, 100);
+			const timer = setTimeout(scrollToBottom, 500);
 			return () => clearTimeout(timer);
 		}
 	}, [messages]);
@@ -213,7 +232,7 @@ export default function ChatLayout() {
 			</div>
 
 			<AppChatbox
-				id={sessionId}
+				id={conversationId}
 				scrollToBottom={() => {
 					if (lastMessageRef.current) {
 						lastMessageRef.current.scrollIntoView({ behavior: "smooth" });

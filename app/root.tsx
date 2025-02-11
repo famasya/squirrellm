@@ -1,4 +1,10 @@
-import { ClerkApp, RedirectToSignIn, SignedIn, SignedOut } from "@clerk/remix";
+import {
+	ClerkApp,
+	ClerkProvider,
+	RedirectToSignIn,
+	SignedIn,
+	SignedOut,
+} from "@clerk/remix";
 import { rootAuthLoader } from "@clerk/remix/ssr.server";
 import type {
 	LinksFunction,

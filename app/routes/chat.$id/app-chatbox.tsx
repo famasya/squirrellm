@@ -69,8 +69,9 @@ export default function AppChatbox({
 						onChange={handleInputChange}
 					/>
 					<div className="mt-3 flex items-center justify-between">
-						<div className="flex items-center gap-2">
+						<div className="flex items-center gap-2 w-1/3">
 							<SearchableSelect
+								className="w-full"
 								value={selectedModel}
 								options={availableModels.map((model) => ({
 									value: model.id,

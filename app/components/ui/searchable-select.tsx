@@ -31,6 +31,7 @@ interface SearchableSelectProps {
 	value?: string;
 	onChange?: (option: Option) => void;
 	disabled?: boolean;
+	className?: string;
 }
 
 export function SearchableSelect({
@@ -55,7 +56,9 @@ export function SearchableSelect({
 				<Button
 					variant="outline"
 					aria-expanded={open}
-					className="w-full justify-between rounded-full truncate overflow-hidden border-2"
+					className={cn(
+						"w-full justify-between rounded-full truncate overflow-hidden border-2",
+					)}
 				>
 					{value ? placeholderValue : placeholder}
 					<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />

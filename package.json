@@ -12,7 +12,6 @@
     "typecheck": "tsc"
   },
   "dependencies": {
-    "@ai-sdk/deepseek": "^0.1.8",
     "@ai-sdk/openai": "^1.1.9",
     "@clerk/remix": "^4.4.22",
     "@libsql/client": "^0.14.0",
@@ -41,6 +40,7 @@
     "cmdk": "^1.0.0",
     "date-fns": "^4.1.0",
     "drizzle-orm": "^0.39.2",
+    "ioredis": "^5.5.0",
     "isbot": "^4.1.0",
     "lucide-react": "^0.475.0",
     "markdown-to-jsx": "^7.7.3",

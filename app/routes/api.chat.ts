@@ -8,25 +8,31 @@ import {
 	streamText,
 	wrapLanguageModel,
 } from "ai";
-import { db } from "~/lib/db";
+import { db, redis } from "~/lib/db";
 import { messages as messagesTable } from "~/lib/db.schema";
 
+type Payload = Message & {
+	model: string;
+	instruction?: string;
+	conversationId: string;
+};
 export async function action({ request }: ActionFunctionArgs) {
 	try {
-		const url = new URL(request.url).searchParams;
-		const model = url.get("model");
-		const sessionId = url.get("sessionId");
-		const { messages } = await request.json();
-		if (!messages || !model || !sessionId) {
+		const { message } = (await request.json()) as { message: Payload };
+		if (!message) {
 			throw new Error("Messages are required");
 		}
+		const { model, instruction, conversationId } = message;
 
 		const openrouter = createOpenRouter({
 			apiKey: process.env.OPENROUTER_API_KEY,
 		});
 
-		// add user message to messages (from latest message)
-		const message = messages[messages.length - 1] as Message;
+		// append cached messages to current message
+		const cachedMessages = JSON.parse(
+			(await redis.get(conversationId)) || "[]",
+		);
+		const messages = [...cachedMessages, message];
 		await db
 			.insert(messagesTable)
 			.values({
@@ -35,13 +41,11 @@ export async function action({ request }: ActionFunctionArgs) {
 				createdAt: new Date().getTime(),
 				content: message.content,
 				model: model,
-				sessionId: sessionId,
+				sessionId: conversationId,
 			})
 			.onConflictDoNothing();
 
 		// get instruction from header
-		const headers = new Headers(request.headers);
-		const instruction = headers.get("model-instruction");
 		return createDataStreamResponse({
 			execute: (dataStream) => {
 				dataStream.writeData("<thinking>");
@@ -75,7 +79,7 @@ export async function action({ request }: ActionFunctionArgs) {
 									completionToken: response.usage.completionTokens,
 									totalToken: response.usage.totalTokens,
 									reasoning: response.reasoning,
-									sessionId: sessionId,
+									sessionId: conversationId,
 								})
 								.onConflictDoNothing();
 						}
@@ -83,7 +87,7 @@ export async function action({ request }: ActionFunctionArgs) {
 						dataStream.writeData("<done>");
 					},
 					experimental_transform: smoothStream({
-						delayInMs: 20,
+						delayInMs: 50,
 					}),
 				});
 
