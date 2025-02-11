@@ -50,7 +50,7 @@ export function SearchableSelect({
 				<Button
 					variant="outline"
 					aria-expanded={open}
-					className="w-full justify-between rounded-full truncate overflow-hidden"
+					className="w-full justify-between rounded-full truncate overflow-hidden border-2"
 				>
 					{value
 						? `${options.find((option) => option.value === value)?.label.substring(0, 30)}...`

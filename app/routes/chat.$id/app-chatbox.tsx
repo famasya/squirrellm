@@ -1,5 +1,6 @@
 import type { InferSelectModel } from "drizzle-orm";
 import { Send, StopCircle } from "lucide-react";
+import { ClientOnly } from "remix-utils/client-only";
 import { AutosizeTextarea } from "~/components/ui/autosize-textarea";
 import { Button } from "~/components/ui/button";
 import { SearchableSelect } from "~/components/ui/searchable-select";
@@ -67,21 +68,24 @@ export default function AppChatbox({
 							/>
 						</div>
 						<div className="flex items-center gap-2">
-							<Button
-								disabled={input === "" && !isLoading}
-								onClick={isLoading ? stop : handleSend}
-								className="flex items-center justify-center"
-							>
-								{isLoading ? (
-									<span className="flex items-center gap-2">
-										<StopCircle /> Stop
-									</span>
-								) : (
-									<span className="flex items-center gap-2">
-										<Send /> Send
-									</span>
-								)}
-							</Button>
+							<ClientOnly fallback={<Button disabled> <Send /> Send </Button>}>
+								{() => <Button
+									disabled={input === "" && !isLoading}
+									onClick={isLoading ? stop : handleSend}
+									className="flex items-center justify-center"
+								>
+									{isLoading ? (
+										<span className="flex items-center gap-2">
+											<StopCircle /> Stop
+										</span>
+									) : (
+										<span className="flex items-center gap-2">
+											<Send /> Send
+										</span>
+									)}
+								</Button>
+								}
+							</ClientOnly>
 						</div>
 					</div>
 				</div>

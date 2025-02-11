@@ -1,6 +1,6 @@
 import TeX from "@matejmazur/react-katex";
 import { format } from "date-fns";
-import { Loader2, Squirrel } from "lucide-react";
+import { Squirrel } from "lucide-react";
 import Markdown, { RuleType } from "markdown-to-jsx";
 import { Avatar, AvatarFallback } from "~/components/ui/avatar";
 import { cn } from "~/lib/utils";
@@ -11,7 +11,6 @@ type Props = {
 	model?: string;
 	isThinking?: boolean;
 	createdAt: Date;
-	id: string;
 };
 
 export default function ChatBubble({
@@ -20,7 +19,6 @@ export default function ChatBubble({
 	model,
 	isThinking,
 	createdAt,
-	id,
 }: Props) {
 	const showThinking = isBot && isThinking;
 	return (
@@ -47,10 +45,17 @@ export default function ChatBubble({
 				<div>
 					{isBot && (
 						<div className="text-sm text-gray-500 flex flex-row items-center gap-2">
-							<span>{model}</span>
+							<a
+								href={`https://openrouter.ai/${model}`}
+								target="_blank"
+								rel="noopener noreferrer"
+								className="underline"
+							>
+								{model}
+							</a>
 							{showThinking ? (
 								<span className="animate-pulse flex flex-row items-center gap-2">
-									<Loader2 className="h-4 w-4 animate-spin" /> thinking...
+									is thinking...
 								</span>
 							) : (
 								<span>at {format(createdAt, "HH:mm")}</span>

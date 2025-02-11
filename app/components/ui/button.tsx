@@ -10,7 +10,7 @@ const buttonVariants = cva(
 		variants: {
 			variant: {
 				"gradient-black":
-					"bg-gradient-to-t from-sidebar-foreground/10 to-sidebar-foreground/20 border-sidebar-foreground/10",
+					"gradient-black",
 				default:
 					"bg-primary text-primary-foreground shadow hover:bg-primary/90",
 				destructive:
@@ -38,7 +38,7 @@ const buttonVariants = cva(
 
 export interface ButtonProps
 	extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-		VariantProps<typeof buttonVariants> {
+	VariantProps<typeof buttonVariants> {
 	asChild?: boolean;
 }
 

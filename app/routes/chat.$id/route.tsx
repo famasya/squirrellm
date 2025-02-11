@@ -7,6 +7,7 @@ import {
 } from "@remix-run/react";
 import { TwitterSnowflake } from "@sapphire/snowflake";
 import { useChat } from "ai/react";
+import { format } from "date-fns";
 import { eq } from "drizzle-orm";
 import { CircleAlert } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -18,7 +19,7 @@ import {
 	messages as messagesTable,
 	models,
 } from "~/lib/db.schema";
-import { useEffectOnce } from "~/lib/utils";
+import { cn, useEffectOnce } from "~/lib/utils";
 import { getSession } from "~/sessions";
 import AppChatbox from "./app-chatbox";
 import ChatBubble from "./chat-bubble";
@@ -149,25 +150,29 @@ export default function ChatLayout() {
 
 	return (
 		<div className="w-full flex flex-col h-full overflow-hidden">
-			<div className="px-3 pt-2 flex-1 overflow-auto mb-8" ref={scrollRef}>
-				<ScrollArea className="h-full overflow-y-auto pr-4">
+			<div className="px-3 pt-2 flex-1 overflow-auto" ref={scrollRef}>
+				<ScrollArea className="h-full overflow-y-auto pr-4" type="always">
+					<div className="text-center text-gray-500 text-sm">
+						Conversation begins at{" "}
+						{format(messages[0]?.createdAt || Date.now(), "dd/MM/yy HH:mm")}
+					</div>
 					{messages.map((message, index) => {
 						const messageModelUsed = message.annotations?.[0] as
 							| undefined
 							| { model: string };
+						const isLastMessage = index === messages.length - 1;
 						const nowThinking =
 							data?.includes("<thinking>") &&
 							!data.includes("<done>") &&
-							index === messages.length - 1;
+							isLastMessage;
 						return (
 							<div
 								key={message.id}
-								ref={index === messages.length - 1 ? lastMessageRef : null}
+								ref={isLastMessage ? lastMessageRef : null}
+								className={cn(isLastMessage && "mb-8")}
 							>
 								<ChatBubble
-									id={message.id}
 									isThinking={nowThinking}
-									key={message.id}
 									text={message.content}
 									createdAt={new Date(message.createdAt || 0)}
 									model={messageModelUsed?.model || selectedModel.model}

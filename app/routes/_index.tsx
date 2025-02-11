@@ -12,6 +12,7 @@ import {
 import { TwitterSnowflake } from "@sapphire/snowflake";
 import { CircleAlert, Loader2, Send, Squirrel } from "lucide-react";
 import { useEffect, useState } from "react";
+import { ClientOnly } from 'remix-utils/client-only';
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { SearchableSelect } from "~/components/ui/searchable-select";
@@ -84,7 +85,7 @@ export default function AppHome() {
 
 	return (
 		<div className="flex h-full items-center justify-center">
-			<div className="w-full max-w-[800px] space-y-2 flex flex-col text-center">
+			<div className="w-full max-w-[800px] space-y-2 flex flex-col text-center bg-white/5 p-8 rounded-xl shadow-sm">
 				<h1 className="text-xl font-semibold mb-2 flex items-center justify-center gap-4">
 					<Squirrel />
 					How may I help you?
@@ -96,7 +97,7 @@ export default function AppHome() {
 						name="message"
 						disabled={navigation.state === "submitting" || models.length === 0}
 						onChange={(e) => setMessage(e.target.value)}
-						className="h-12 rounded-xl shadow-lg dark:bg-zinc-800"
+						className="h-12 rounded-xl shadow-lg dark:bg-zinc-900"
 						autoFocus
 					/>
 
@@ -131,26 +132,29 @@ export default function AppHome() {
 							/>
 						)}
 
-						<Button
-							type="submit"
-							disabled={
-								navigation.state === "submitting" ||
-								models.length === 0 ||
-								!message
+						<ClientOnly fallback={<Button disabled><Send /> Send</Button>}>
+							{() =>
+								<Button
+									type="submit"
+									disabled={
+										navigation.state === "submitting" ||
+										models.length === 0 ||
+										message.length === 0
+									}
+								>
+									{navigation.state === "submitting" ? (
+										<>
+											<Loader2 className="mr-2 h-4 w-4 animate-spin" />{" "}
+											Processing...
+										</>
+									) : (
+										<>
+											<Send /> Send
+										</>
+									)}
+								</Button>
 							}
-						>
-							{navigation.state === "submitting" ||
-							navigation.state === "loading" ? (
-								<>
-									<Loader2 className="mr-2 h-4 w-4 animate-spin" />{" "}
-									Processing...
-								</>
-							) : (
-								<>
-									<Send /> Send
-								</>
-							)}
-						</Button>
+						</ClientOnly>
 					</div>
 				</Form>
 			</div>
