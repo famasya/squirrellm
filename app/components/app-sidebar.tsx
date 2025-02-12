@@ -1,7 +1,7 @@
-import { NavLink, useParams } from "@remix-run/react";
+import { NavLink, useNavigation, useParams } from "@remix-run/react";
 import type { InferSelectModel } from "drizzle-orm";
 import { CircleEllipsis, MessageSquare, Plus, Settings } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import useSWRInfinite from "swr/infinite";
 import {
@@ -33,19 +33,16 @@ export default function AppSidebar() {
 	const params = useParams();
 	const [nextCursor, setNextCursor] = useState<string | null>(null);
 	const { state } = useSidebar();
+	const navigation = useNavigation();
 	const { refreshConversationsListKey } = useChatStore();
+
 	const { data, isLoading, size, setSize } = useSWRInfinite(
 		(index, previousPageData: ConversationsResponse["conversations"]) => {
-			if (previousPageData && !previousPageData.length)
-				return ["", refreshConversationsListKey];
-			if (index === 0)
-				return ["/api/conversations", refreshConversationsListKey];
-			return [
-				`/api/conversations?cursor=${nextCursor}`,
-				refreshConversationsListKey,
-			];
+			if (previousPageData && !previousPageData.length) return null;
+			if (index === 0) return "/api/conversations";
+			return `/api/conversations?cursor=${nextCursor}`;
 		},
-		async ([url, _]) => {
+		async (url) => {
 			const res = await fetch(url);
 			const data = (await res.json()) as ConversationsResponse;
 			setNextCursor(data.cursor);
@@ -60,6 +57,13 @@ export default function AppSidebar() {
 		},
 	);
 	const { isGeneratingResponse } = useChatStore();
+
+	// revalidate all on navigation state or refreshConversationsListKey change
+	useEffect(() => {
+		if (navigation.state !== "idle" || refreshConversationsListKey) {
+			setSize(1);
+		}
+	}, [navigation.state, setSize, refreshConversationsListKey]);
 
 	const conversations = data?.flat();
 	const isActive = (id: string) => params.id === id;

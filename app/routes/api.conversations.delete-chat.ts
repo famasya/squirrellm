@@ -7,5 +7,8 @@ export async function action({ request }: ActionFunctionArgs) {
 	const { id } = await request.json();
 	if (!id) throw new Error("ID is required");
 	await db.delete(conversations).where(eq(conversations.id, id as string));
-	return { status: "ok" };
+	return {
+		message: "Chat deleted",
+		success: true,
+	};
 }

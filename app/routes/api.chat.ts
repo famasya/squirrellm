@@ -13,11 +13,11 @@ import { messages as messagesTable } from "~/lib/db.schema";
 
 export type ChatPayload = {
 	message: Message & {
-		model: string;
-		instruction?: string;
+		modelId: string;
+		instruction: string | null;
 		conversationId: string;
 		temperature: string;
-	}
+	};
 };
 export async function action({ request }: ActionFunctionArgs) {
 	try {
@@ -25,7 +25,7 @@ export async function action({ request }: ActionFunctionArgs) {
 		if (!message) {
 			throw new Error("Messages are required");
 		}
-		const { model, instruction, conversationId, temperature } = message;
+		const { modelId, instruction, conversationId, temperature } = message;
 
 		const openrouter = createOpenRouter({
 			apiKey: process.env.OPENROUTER_API_KEY,
@@ -43,7 +43,7 @@ export async function action({ request }: ActionFunctionArgs) {
 				role: "user",
 				createdAt: new Date().getTime(),
 				content: message.content,
-				model: model,
+				model: modelId,
 				conversationId: conversationId,
 			})
 			.onConflictDoNothing();
@@ -54,7 +54,7 @@ export async function action({ request }: ActionFunctionArgs) {
 				dataStream.writeData("<thinking>");
 
 				const aiModel = wrapLanguageModel({
-					model: openrouter(model, {
+					model: openrouter(modelId, {
 						includeReasoning: true,
 					}),
 					middleware: extractReasoningMiddleware({ tagName: "think" }),
@@ -68,7 +68,7 @@ export async function action({ request }: ActionFunctionArgs) {
 					messages,
 					...(instruction && { system: instruction }),
 					onChunk: (chunk) => {
-						dataStream.writeMessageAnnotation({ model: model });
+						dataStream.writeMessageAnnotation({ model: modelId });
 					},
 					onFinish: async (response) => {
 						// once stream is closed, store the messages
@@ -80,7 +80,7 @@ export async function action({ request }: ActionFunctionArgs) {
 									role: "assistant",
 									createdAt: new Date().getTime(),
 									content: response.text,
-									model: model,
+									model: modelId,
 									promptToken: response.usage.promptTokens,
 									completionToken: response.usage.completionTokens,
 									totalToken: response.usage.totalTokens,

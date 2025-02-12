@@ -11,7 +11,8 @@ export const profiles = s.sqliteTable("profiles", {
 	modelId: s.text().notNull(),
 	name: s.text().notNull(),
 	systemMessage: s.text(),
-	isDefault: s.integer().default(0),
+	isDefault: s.integer().notNull().default(0),
+	temperature: s.text().notNull().default("1"),
 	metadata: s.text().notNull(),
 });
 
@@ -25,6 +26,9 @@ export const messages = s.sqliteTable("messages", {
 	completionToken: s.integer().default(0),
 	totalToken: s.integer().default(0),
 	reasoning: s.text(),
-	modelId: s.text().references(() => profiles.id), // nullable, we dont want to delete messages when we delete a model
-	conversationId: s.text().notNull().references(() => conversations.id, { onDelete: "cascade" }),
+	profileId: s.text().references(() => profiles.id), // nullable, we dont want to delete messages when we delete a profile
+	conversationId: s
+		.text()
+		.notNull()
+		.references(() => conversations.id, { onDelete: "cascade" }),
 });

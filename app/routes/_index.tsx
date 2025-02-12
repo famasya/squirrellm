@@ -2,59 +2,59 @@ import type { ActionFunctionArgs } from "@remix-run/node";
 import {
 	Form,
 	redirect,
-	useActionData,
 	useLoaderData,
-	useNavigate,
-	useNavigation
+	useNavigation,
+	useSubmit,
 } from "@remix-run/react";
 import { TwitterSnowflake } from "@sapphire/snowflake";
+import type { InferSelectModel } from "drizzle-orm";
 import { Loader2, Send, Squirrel } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { GlobalErrorBoundary } from "~/components/global-error-boundary";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { SearchableSelect } from "~/components/ui/searchable-select";
 import { db } from "~/lib/db";
 import { conversations, profiles } from "~/lib/db.schema";
-import useChatStore from "~/lib/stores";
 import { commitSession, getSession } from "~/sessions";
+
+type Profile = InferSelectModel<typeof profiles>;
 
 export async function action({ request }: ActionFunctionArgs) {
 	const session = await getSession(request.headers.get("Cookie"));
-	const body = await request.formData();
-	const message = body.get("message")?.toString();
-	const model = body.get("model")?.toString();
-	const instruction = body.get("instruction")?.toString();
-	if (!message || !model) throw new Error("Message is required");
 
-	const id = TwitterSnowflake.generate().toString();
+	const { profileId, message, model, instruction } = await request.json();
+	if (!message || !model || !profileId) {
+		throw new Error("Message and model are required");
+	}
 
 	// create session
-	await db.insert(conversations).values({
-		id: id,
-		createdAt: new Date().toISOString(),
-		name: message as string,
-	});
+	const [newSession] = await db
+		.insert(conversations)
+		.values({
+			id: TwitterSnowflake.generate().toString(),
+			createdAt: new Date().toISOString(),
+			name: message as string,
+		})
+		.returning();
 
-	console.log(model, message, instruction)
 	session.flash("newConversation", {
+		profileId: profileId,
 		message: message,
 		model: model,
 		instruction: instruction?.toString(),
 	});
 
-	return Response.json(
-		{ id },
-		{
-			headers: {
-				"Set-Cookie": await commitSession(session),
-			},
+	return redirect(`/chat/${newSession.id}`, {
+		headers: {
+			"Set-Cookie": await commitSession(session),
 		},
-	);
+	});
 }
 
 export async function loader() {
 	const availableProfiles = await db.select().from(profiles);
+	// redirect if no profiles were created
 	if (availableProfiles.length === 0) {
 		return redirect("/settings?state=onboarding");
 	}
@@ -62,27 +62,19 @@ export async function loader() {
 }
 
 export default function AppHome() {
-	const [message, setMessage] = useState("");
-	const navigation = useNavigation();
-	const navigate = useNavigate();
 	const { availableProfiles } = useLoaderData<typeof loader>();
 	const defaultProfile =
 		availableProfiles.find((profile) => profile.isDefault === 1) ??
 		availableProfiles[0];
-	const [selectedProfile, setSelectedProfile] = useState({
-		model: defaultProfile.modelId,
-		name: defaultProfile.name,
-		instruction: defaultProfile.systemMessage,
-	});
-	const response = useActionData<{ id: string }>();
-	const { refreshConversationsList } = useChatStore();
 
-	useEffect(() => {
-		if (response) {
-			refreshConversationsList();
-			navigate(`/chat/${response.id}`);
-		}
-	}, [response, navigate, refreshConversationsList]);
+	const [newSession, setNewSession] = useState({
+		message: "",
+		model: defaultProfile.modelId,
+		instruction: defaultProfile.systemMessage,
+		profileId: defaultProfile.id,
+	});
+	const navigation = useNavigation();
+	const submit = useSubmit();
 
 	return (
 		<div className="flex h-full items-center justify-center">
@@ -91,13 +83,18 @@ export default function AppHome() {
 					<Squirrel />
 					How may I help you?
 				</h1>
-				<Form method="post" autoComplete="off">
+				<Form autoComplete="off">
 					<Input
 						placeholder="Ask me anything..."
-						value={message}
+						value={newSession.message}
 						name="message"
-						disabled={navigation.state === "submitting" || availableProfiles.length === 0}
-						onChange={(e) => setMessage(e.target.value)}
+						disabled={
+							navigation.state === "submitting" ||
+							availableProfiles.length === 0
+						}
+						onChange={(e) =>
+							setNewSession({ ...newSession, message: e.target.value })
+						}
 						className="h-12 rounded-xl shadow-lg dark:bg-zinc-900"
 						autoFocus
 					/>
@@ -106,18 +103,22 @@ export default function AppHome() {
 						<div className="flex gap-2 items-center w-">
 							<SearchableSelect
 								disabled={
-									navigation.state === "submitting" || availableProfiles.length === 0
+									navigation.state === "submitting" ||
+									availableProfiles.length === 0
 								}
-								value={selectedProfile.model}
-								onChange={(value) =>
-									setSelectedProfile({
-										model: value.value,
-										name: value.label,
-										instruction:
-											availableProfiles.find((profile) => profile.modelId === value.value)
-												?.systemMessage || null,
-									})
-								}
+								value={newSession.profileId}
+								onChange={({ value: profileId }) => {
+									// find modelId
+									const model = availableProfiles.find(
+										(profile) => profile.id === profileId,
+									) as Profile;
+									setNewSession({
+										...newSession,
+										profileId,
+										model: model.modelId,
+										instruction: model.systemMessage,
+									});
+								}}
 								options={availableProfiles.map((profile) => ({
 									value: profile.modelId,
 									label: profile.name,
@@ -125,21 +126,19 @@ export default function AppHome() {
 								placeholder="Select a profile"
 							/>
 						</div>
-						<Input type="hidden" name="model" value={selectedProfile.model} />
-						{selectedProfile.instruction && (
-							<Input
-								type="hidden"
-								name="instruction"
-								value={selectedProfile.instruction}
-							/>
-						)}
 
 						<Button
-							type="submit"
+							type="button"
 							disabled={
 								availableProfiles.length === 0 ||
-								message.length === 0
+								newSession.message.length === 0
 							}
+							onClick={() => {
+								submit(newSession, {
+									method: "post",
+									encType: "application/json",
+								});
+							}}
 						>
 							{navigation.state === "submitting" ? (
 								<>

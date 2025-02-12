@@ -1,0 +1,2 @@
+ALTER TABLE `messages` RENAME COLUMN "modelId" TO "profileId";--> statement-breakpoint
+ALTER TABLE `messages` ALTER COLUMN "profileId" TO "profileId" text REFERENCES profiles(id) ON DELETE no action ON UPDATE no action;

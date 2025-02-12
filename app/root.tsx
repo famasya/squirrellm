@@ -1,9 +1,4 @@
-import {
-	ClerkApp,
-	RedirectToSignIn,
-	SignedIn,
-	SignedOut
-} from "@clerk/remix";
+import { ClerkApp, RedirectToSignIn, SignedIn, SignedOut } from "@clerk/remix";
 import { rootAuthLoader } from "@clerk/remix/ssr.server";
 import type {
 	LinksFunction,
@@ -105,7 +100,6 @@ function App() {
 		</>
 	);
 }
-
 
 export function ErrorBoundary() {
 	return <GlobalErrorBoundary />;
