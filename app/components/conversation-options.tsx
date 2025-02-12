@@ -31,8 +31,8 @@ export default function ConversationOptions({ id, disabled }: Props) {
 	const navigate = useNavigate();
 	const { refreshConversationsList } = useChatStore();
 	const { trigger, isMutating } = useSWRMutation(
-		"/api/delete-chat",
-		async (key, { arg }: { arg: string }) => {
+		"/api/conversations/delete-chat",
+		async (key: string, { arg }: { arg: string }) => {
 			const response = await fetch(key, {
 				method: "POST",
 				headers: {

@@ -42,16 +42,16 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 		.where(eq(messagesTable.conversationId, params.id));
 
 	// if neither messages or conversation is present, redirect to home
-	if (!messages.length || !conversation) {
+	if (!messages.length && !conversation) {
 		return redirect("/");
 	}
-	const pageTitle = messages[0]?.content || conversation.message;
+	const pageTitle = messages[0]?.content || conversation?.message;
 
 	// find model from chat initialization or last message
 	const availableModels = await db.select().from(models);
 	const lastMessage = messages[messages.length - 1];
 	const messageModel = availableModels.find(
-		(m) => m.id === lastMessage?.model || conversation?.model,
+		(m) => m.modelId === lastMessage?.model || conversation?.model,
 	);
 
 	// if model not found, redirect to home
@@ -65,8 +65,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 	return {
 		previousMessages: messages,
 		pageTitle: pageTitle,
-		model: messageModel.id,
-		temperature: messageModel.temperature,
+		model: messageModel.modelId,
+		temperature: 1,
 		conversationId: params.id,
 		availableModels,
 		newConversationMessage: conversation?.message,
@@ -163,7 +163,6 @@ export default function ChatLayout() {
 		setIsGeneratingResponse(isLoading);
 	}, [isLoading, setIsGeneratingResponse]);
 
-	console.log(messages);
 	// update model and instruction when model changes
 	useEffect(() => {
 		const lastModelInstruction =

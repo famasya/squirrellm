@@ -10,7 +10,6 @@ import {
 import { TwitterSnowflake } from "@sapphire/snowflake";
 import { Loader2, Send, Squirrel } from "lucide-react";
 import { useEffect, useState } from "react";
-import { ClientOnly } from "remix-utils/client-only";
 import { GlobalErrorBoundary } from "~/components/global-error-boundary";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -37,6 +36,7 @@ export async function action({ request }: ActionFunctionArgs) {
 		name: message as string,
 	});
 
+	console.log(model, message, instruction)
 	session.flash("newConversation", {
 		message: message,
 		model: model,
@@ -70,7 +70,8 @@ export default function AppHome() {
 		availableModels.find((model) => model.isDefault === 1) ??
 		availableModels[0];
 	const [selectedModel, setSelectedModel] = useState({
-		model: defaultModel.id,
+		model: defaultModel.modelId,
+		name: defaultModel.name,
 		instruction: defaultModel.systemMessage,
 	});
 	const response = useActionData<{ id: string }>();
@@ -90,7 +91,7 @@ export default function AppHome() {
 					<Squirrel />
 					How may I help you?
 				</h1>
-				<Form method="post">
+				<Form method="post" autoComplete="off">
 					<Input
 						placeholder="Ask me anything..."
 						value={message}
@@ -102,7 +103,7 @@ export default function AppHome() {
 					/>
 
 					<div className="w-full flex justify-between mt-2">
-						<div className="flex gap-2 items-center">
+						<div className="flex gap-2 items-center w-">
 							<SearchableSelect
 								disabled={
 									navigation.state === "submitting" || availableModels.length === 0
@@ -111,13 +112,14 @@ export default function AppHome() {
 								onChange={(value) =>
 									setSelectedModel({
 										model: value.value,
+										name: value.label,
 										instruction:
-											availableModels.find((m) => m.id === value.value)?.systemMessage ||
-											null,
+											availableModels.find((m) => m.modelId === value.value)
+												?.systemMessage || null,
 									})
 								}
 								options={availableModels.map((model) => ({
-									value: model.id,
+									value: model.modelId,
 									label: model.name,
 								}))}
 								placeholder="Select a model"
@@ -132,35 +134,24 @@ export default function AppHome() {
 							/>
 						)}
 
-						<ClientOnly
-							fallback={
-								<Button disabled>
-									<Send /> Send
-								</Button>
+						<Button
+							type="submit"
+							disabled={
+								availableModels.length === 0 ||
+								message.length === 0
 							}
 						>
-							{() => (
-								<Button
-									type="submit"
-									disabled={
-										navigation.state === "submitting" ||
-										availableModels.length === 0 ||
-										message.length === 0
-									}
-								>
-									{navigation.state === "submitting" ? (
-										<>
-											<Loader2 className="mr-2 h-4 w-4 animate-spin" />{" "}
-											Processing...
-										</>
-									) : (
-										<>
-											<Send /> Send
-										</>
-									)}
-								</Button>
+							{navigation.state === "submitting" ? (
+								<>
+									<Loader2 className="mr-2 h-4 w-4 animate-spin" />{" "}
+									Processing...
+								</>
+							) : (
+								<>
+									<Send /> Send
+								</>
 							)}
-						</ClientOnly>
+						</Button>
 					</div>
 				</Form>
 			</div>
