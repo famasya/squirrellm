@@ -5,12 +5,14 @@ import {
 	useLoaderData,
 	useLocation,
 	useNavigation,
+	useSubmit
 } from "@remix-run/react";
-import { eq, ne } from "drizzle-orm";
+import { TwitterSnowflake } from "@sapphire/snowflake";
 import { Edit, Loader2, Save, Trash } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import useSWR from "swr";
+import { GlobalErrorBoundary } from "~/components/global-error-boundary";
 import { Button } from "~/components/ui/button";
 import { Checkbox } from "~/components/ui/checkbox";
 import { Input } from "~/components/ui/input";
@@ -19,76 +21,55 @@ import { SearchableSelect } from "~/components/ui/searchable-select";
 import { Textarea } from "~/components/ui/textarea";
 import { db } from "~/lib/db";
 import { models as modelsTable } from "~/lib/db.schema";
+import type { action as deleteModelAction } from "./api.settings.delete-model";
 
 export async function loader() {
-	const dbModels = await db.select().from(modelsTable);
-	return { dbModels };
+	const availableModels = await db.select().from(modelsTable);
+	return { availableModels };
 }
 
 export async function action({ request }: ActionFunctionArgs) {
-	const body = await request.formData();
-	const model = body.get("model")?.toString();
-	const name = body.get("name")?.toString();
-	const deleteId = body.get("deleteId")?.toString();
-	const systemMessage = body.get("systemMessage")?.toString();
-	const profile = body.get("profile")?.toString();
-	const metadata = body.get("metadata")?.toString();
-	const isDefault = body.get("isDefault") === "true" ? 1 : 0;
+	const {
+		id,
+		modelId,
+		name,
+		systemMessage,
+		metadata,
+		isDefault,
+	} = await request.json();
 
-	if (deleteId) {
-		await db.delete(modelsTable).where(eq(modelsTable.id, deleteId));
-
-		if (isDefault) {
-			// if isDefault is deleted, set the next first model as default
-			const nextModel = await db.select().from(modelsTable).limit(1);
-			if (nextModel.length === 0) return true;
-
-			await db
-				.update(modelsTable)
-				.set({ isDefault: 1 })
-				.where(eq(modelsTable.id, nextModel[0].id));
-		}
-		return true;
-	}
-
-	if (!model || !name || !profile || !metadata) {
-		throw new Error("Invalid form data");
-	}
-
-	// if new default is set, make all others not default
-	if (isDefault) {
-		await db
-			.update(modelsTable)
-			.set({ isDefault: 0 })
-			.where(ne(modelsTable.id, model));
-	}
-
+	// upsert model
 	await db
 		.insert(modelsTable)
 		.values({
-			id: model,
+			id: id !== "" ? id : TwitterSnowflake.generate().toString(),
+			modelId: modelId,
 			name: name,
-			profile: profile,
 			systemMessage: systemMessage || null,
 			metadata: metadata,
 			isDefault: isDefault,
 		})
 		.onConflictDoUpdate({
+			target: modelsTable.id,
 			set: {
+				modelId: modelId,
 				name: name,
 				systemMessage: systemMessage || null,
+				metadata: metadata,
 				isDefault: isDefault,
 			},
-			target: modelsTable.id,
 		});
 
-	return true;
+	return {
+		message: "Model saved",
+	};
 }
 
 export default function Settings() {
 	const navigation = useNavigation();
 	const location = useLocation();
-	const response = useActionData<boolean>();
+	const upsertAction = useActionData<typeof action>();
+	const deleteAction = useActionData<typeof deleteModelAction>();
 	const { data: openrouterModels, isLoading } = useSWR(
 		"https://openrouter.ai/api/v1/models",
 		async (url) => {
@@ -103,37 +84,44 @@ export default function Settings() {
 			},
 		},
 	);
-	const { dbModels } = useLoaderData<typeof loader>();
-	const [formValue, setFormValue] = useState({
+	const { availableModels } = useLoaderData<typeof loader>();
+	const submit = useSubmit();
+	const [formValues, setFormValues] = useState({
 		id: "",
+		modelId: "",
 		name: "",
 		systemMessage: "",
 		metadata: "{}",
-		isDefault: dbModels.length === 0,
+		isDefault: availableModels.length === 0,
 	});
 
-	// show alert if response is true
+	// show success message
 	useEffect(() => {
-		if (response === true) {
-			toast.success("Settings saved");
+		if (upsertAction?.message) {
+			toast.success(upsertAction.message);
 		}
-	}, [response]);
+	}, [upsertAction]);
 
 	// reset state
 	useEffect(() => {
 		if (location.key) {
-			setFormValue({
+			setFormValues({
 				id: "",
+				modelId: "",
 				name: "",
-				metadata: "{}",
 				systemMessage: "",
-				isDefault: dbModels.length === 0,
+				metadata: "{}",
+				isDefault: availableModels.length === 0,
 			});
 		}
-	}, [location, dbModels]);
+	}, [location, availableModels]);
+
+	const upsertHandler = () => {
+		submit(formValues, { method: "post", encType: "application/json" });
+	};
 
 	return (
-		<div className="ml-1">
+		<div className="ml-1 mb-8">
 			{location.search.includes("state=onboarding") && (
 				<div className="w-full p-2 rounded-sm mt-4 bg-white/10">
 					<p className="text-sm">
@@ -146,27 +134,25 @@ export default function Settings() {
 
 			<div className="w-full max-w-[600px] border-[1px] p-4 rounded-sm mt-4">
 				<h2 className="font-semibold">Add new model</h2>
+
 				<Form
-					method="post"
 					key={location.key}
 					className="mt-4 space-y-4 flex flex-col"
 				>
 					<div className="space-y-2">
-						<Label htmlFor="model">Model</Label>
+						<Label htmlFor="model">Model <span className="text-red-500">*</span></Label>
 						<SearchableSelect
 							disabled={isLoading || navigation.state === "submitting"}
 							onChange={(option) => {
-								const metadata = openrouterModels?.find((model) => model.id === option.value);
-								setFormValue({
-									...formValue,
-									id: option.value,
-									name: option.label,
-									metadata: JSON.stringify(metadata || "{}"),
+								const metadata = openrouterModels?.find((model) => model.id === option.value) as object;
+								setFormValues({
+									...formValues,
+									modelId: option.value,
+									metadata: JSON.stringify(metadata),
 								})
-							}
-							}
+							}}
 							placeholder="Select a model"
-							value={formValue.id}
+							value={formValues.modelId}
 							options={
 								openrouterModels?.map((model) => ({
 									value: model.id,
@@ -174,69 +160,66 @@ export default function Settings() {
 								})) || []
 							}
 						/>
-						<Input type="hidden" name="model" value={formValue.id || ""} />
-						<Input type="hidden" name="name" value={formValue.name || ""} />
 					</div>
+
+					<div className="space-y-2">
+						<Label htmlFor="name">Name <span className="text-red-500">*</span></Label>
+						<Input name="name" id="name"
+							value={formValues.name}
+							onChange={(e) => setFormValues({ ...formValues, name: e.target.value })}
+							placeholder="i.e. Coder Wizard"
+						/>
+					</div>
+
 					<div className="space-y-2">
 						<Label htmlFor="instruction">Instruction</Label>
 						<Textarea
 							disabled={
 								isLoading ||
-								formValue.id === "" ||
+								formValues.modelId === "" ||
 								navigation.state === "submitting"
 							}
 							id="instruction"
-							value={formValue.systemMessage}
+							value={formValues.systemMessage}
 							onChange={(e) =>
-								setFormValue({ ...formValue, systemMessage: e.target.value })
+								setFormValues({ ...formValues, systemMessage: e.target.value })
 							}
 							placeholder="e.g. You are an expert assistant in legal field..."
-						/>
-						<Input
-							type="hidden"
-							name="systemMessage"
-							value={formValue.systemMessage}
 						/>
 					</div>
 
 					<div className="flex justify-between items-center">
 						<div className="flex items-center gap-2">
+							<Label htmlFor="default">Default model</Label>
 							<Checkbox
 								id="default"
 								disabled={
 									isLoading ||
-									formValue.id === "" ||
-									navigation.state === "submitting"
+									formValues.id === "" ||
+									navigation.state === "submitting" ||
+									availableModels.length === 1 // if only one model, it is default
 								}
 								onCheckedChange={(value) =>
-									setFormValue({ ...formValue, isDefault: value === true })
+									setFormValues({ ...formValues, isDefault: value === true })
 								}
-								checked={formValue.isDefault}
-							/>
-							<Label htmlFor="default">Default model</Label>
-							<Input
-								type="hidden"
-								name="isDefault"
-								value={formValue.isDefault ? 1 : 0}
+								checked={formValues.isDefault}
 							/>
 						</div>
-						<Input
-							type="hidden"
-							name="metadata"
-							value={formValue.metadata}
-						/>
+
 						<Button
-							type="submit"
+							type="button"
 							disabled={
 								isLoading ||
-								formValue.id === "" ||
+								formValues.modelId === "" ||
+								formValues.name === "" ||
 								navigation.state === "submitting"
 							}
+							onClick={upsertHandler}
 						>
 							{navigation.state === "submitting" ? (
 								<>
 									<Loader2 className="mr-2 h-4 w-4 animate-spin" />{" "}
-									Processing...
+									Saving...
 								</>
 							) : (
 								<>
@@ -249,9 +232,9 @@ export default function Settings() {
 			</div>
 
 			<h1 className="mt-8 text-lg font-bold">Models</h1>
-			{dbModels.length > 0 && (
+			{availableModels.length > 0 && (
 				<div className="w-full max-w-[600px] mt-4 space-y-4">
-					{dbModels.map((model) => (
+					{availableModels.map((model) => (
 						<div
 							key={model.id}
 							className="text-sm border-[1px] rounded-sm p-4 space-y-2"
@@ -265,7 +248,6 @@ export default function Settings() {
 							</div>
 
 							<Form
-								method="post"
 								key={location.key}
 								className="flex justify-end gap-2"
 							>
@@ -273,8 +255,9 @@ export default function Settings() {
 									type="button"
 									size={"sm"}
 									onClick={() =>
-										setFormValue({
+										setFormValues({
 											id: model.id,
+											modelId: model.modelId,
 											name: model.name,
 											metadata: model.metadata,
 											systemMessage: model.systemMessage || "",
@@ -284,13 +267,18 @@ export default function Settings() {
 								>
 									<Edit /> Edit
 								</Button>
-								<Input type="hidden" name="deleteId" value={model.id} />
-								<Input
-									type="hidden"
-									name="isDefault"
-									value={model.isDefault ? 1 : 0}
-								/>
-								<Button type="submit" variant={"destructive"} size={"sm"}>
+								<Button
+									type="button"
+									variant={"destructive"}
+									size={"sm"}
+									onClick={() => {
+										submit(
+											{ id: model.id, isDefault: model.isDefault === 1 },
+											{ method: "post", encType: "application/json" },
+										);
+									}}
+									disabled={availableModels.length === 1}
+								>
 									<Trash /> Remove
 								</Button>
 							</Form>
@@ -300,4 +288,8 @@ export default function Settings() {
 			)}
 		</div>
 	);
+}
+
+export function ErrorBoundary() {
+	return <GlobalErrorBoundary />;
 }

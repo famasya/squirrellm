@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "0c07f748-b679-4248-b536-bb3dac9af9f6",
-  "prevId": "c1047e20-ffed-40c4-ac72-55f3bcdd6336",
+  "id": "cfc5a782-16fe-4aaf-8733-2158e963f9fb",
+  "prevId": "0c07f748-b679-4248-b536-bb3dac9af9f6",
   "tables": {
     "conversations": {
       "name": "conversations",
@@ -142,6 +142,13 @@
           "notNull": true,
           "autoincrement": false
         },
+        "modelId": {
+          "name": "modelId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
         "name": {
           "name": "name",
           "type": "text",
@@ -163,6 +170,13 @@
           "notNull": false,
           "autoincrement": false,
           "default": 0
+        },
+        "metadata": {
+          "name": "metadata",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
         }
       },
       "indexes": {},
@@ -177,9 +191,7 @@
   "_meta": {
     "schemas": {},
     "tables": {},
-    "columns": {
-      "\"messages\".\"sessionId\"": "\"messages\".\"conversationId\""
-    }
+    "columns": {}
   },
   "internal": {
     "indexes": {}

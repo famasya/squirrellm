@@ -29,10 +29,10 @@ export async function loader(args: LoaderFunctionArgs) {
 			data.pop();
 		}
 
-		return Response.json({
+		return {
 			conversations: data,
 			cursor: hasMore ? data[data.length - 1].createdAt : null,
-		});
+		};
 	}
 
 	const data = await db
@@ -46,8 +46,8 @@ export async function loader(args: LoaderFunctionArgs) {
 		data.pop();
 	}
 
-	return Response.json({
+	return {
 		conversations: data,
 		cursor: hasMore ? data[data.length - 1].createdAt : null,
-	});
+	};
 }

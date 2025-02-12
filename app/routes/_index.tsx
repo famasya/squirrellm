@@ -54,20 +54,21 @@ export async function action({ request }: ActionFunctionArgs) {
 }
 
 export async function loader() {
-	const models = await db.select().from(modelsTable);
-	if (models.length === 0) {
+	const availableModels = await db.select().from(modelsTable);
+	if (availableModels.length === 0) {
 		return redirect("/settings?state=onboarding");
 	}
-	return { models };
+	return { availableModels };
 }
 
 export default function AppHome() {
 	const [message, setMessage] = useState("");
 	const navigation = useNavigation();
 	const navigate = useNavigate();
-	const { models } = useLoaderData<typeof loader>();
+	const { availableModels } = useLoaderData<typeof loader>();
 	const defaultModel =
-		models.find((model) => model.isDefault === 1) ?? models[0];
+		availableModels.find((model) => model.isDefault === 1) ??
+		availableModels[0];
 	const [selectedModel, setSelectedModel] = useState({
 		model: defaultModel.id,
 		instruction: defaultModel.systemMessage,
@@ -94,7 +95,7 @@ export default function AppHome() {
 						placeholder="Ask me anything..."
 						value={message}
 						name="message"
-						disabled={navigation.state === "submitting" || models.length === 0}
+						disabled={navigation.state === "submitting" || availableModels.length === 0}
 						onChange={(e) => setMessage(e.target.value)}
 						className="h-12 rounded-xl shadow-lg dark:bg-zinc-900"
 						autoFocus
@@ -104,18 +105,18 @@ export default function AppHome() {
 						<div className="flex gap-2 items-center">
 							<SearchableSelect
 								disabled={
-									navigation.state === "submitting" || models.length === 0
+									navigation.state === "submitting" || availableModels.length === 0
 								}
 								value={selectedModel.model}
 								onChange={(value) =>
 									setSelectedModel({
 										model: value.value,
 										instruction:
-											models.find((m) => m.id === value.value)?.systemMessage ||
+											availableModels.find((m) => m.id === value.value)?.systemMessage ||
 											null,
 									})
 								}
-								options={models.map((model) => ({
+								options={availableModels.map((model) => ({
 									value: model.id,
 									label: model.name,
 								}))}
@@ -143,7 +144,7 @@ export default function AppHome() {
 									type="submit"
 									disabled={
 										navigation.state === "submitting" ||
-										models.length === 0 ||
+										availableModels.length === 0 ||
 										message.length === 0
 									}
 								>

@@ -3,26 +3,22 @@ import { CircleAlert } from "lucide-react";
 
 export function GlobalErrorBoundary() {
   const error = useRouteError();
-  console.error(error);
-  if (isRouteErrorResponse(error)) {
-    return (
-      <div className="border border-red-400 p-2 rounded mt-6 bg-white/10">
-        <div className="text-red-400 flex flex-row gap-2">
-          <CircleAlert /> {error.statusText}
-        </div>
-      </div>
-    );
-  }
-
+  let errorMessage = String(error);
   if (error instanceof Error) {
-    return (
-      <div className="border border-red-400 p-2 rounded mt-6 bg-white/10">
-        <div className="text-red-400 flex flex-row gap-2">
-          <CircleAlert /> {error.message}
-        </div>
-      </div>
-    );
+    errorMessage = error.message;
+  }
+  if (isRouteErrorResponse(error)) {
+    errorMessage = error.statusText;
   }
 
-  return <div>Unknown Error</div>;
+  return (
+    <div className="w-full h-full flex flex-col justify-center items-center">
+      <div className="border border-red-400 p-2 rounded mt-6 bg-white/10">
+        <div className="text-red-400 flex flex-row gap-2">
+          <CircleAlert />  {errorMessage}
+        </div>
+      </div>
+    </div>
+  );
+
 }

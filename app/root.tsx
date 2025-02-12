@@ -56,7 +56,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 				<Meta />
 				<Links />
 			</head>
-			<body className="dark:bg-zinc-900">
+			<body className="dark:bg-zinc-900 min-h-screen overflow-hidden">
 				{children}
 				<ScrollRestoration />
 				<Scripts />
