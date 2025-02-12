@@ -12,7 +12,7 @@ import { db, redis } from "~/lib/db";
 import {
 	conversations,
 	messages as messagesTable,
-	models,
+	profiles,
 } from "~/lib/db.schema";
 import useChatStore from "~/lib/stores";
 import { cn, useEffectOnce } from "~/lib/utils";
@@ -48,14 +48,14 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 	const pageTitle = messages[0]?.content || conversation?.message;
 
 	// find model from chat initialization or last message
-	const availableModels = await db.select().from(models);
+	const availableProfiles = await db.select().from(profiles);
 	const lastMessage = messages[messages.length - 1];
-	const messageModel = availableModels.find(
-		(m) => m.modelId === lastMessage?.model || conversation?.model,
+	const messageProfile = availableProfiles.find(
+		(m) => m.id === lastMessage?.model || conversation?.model,
 	);
 
 	// if model not found, redirect to home
-	if (!messageModel) {
+	if (!messageProfile) {
 		return redirect("/");
 	}
 
@@ -65,10 +65,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 	return {
 		previousMessages: messages,
 		pageTitle: pageTitle,
-		model: messageModel.modelId,
+		model: messageProfile?.id,
 		temperature: 1,
 		conversationId: params.id,
-		availableModels,
+		availableProfiles,
 		newConversationMessage: conversation?.message,
 		newConversationModelInstruction: conversation?.instruction,
 	};
@@ -87,15 +87,15 @@ export default function ChatLayout() {
 		previousMessages,
 		model,
 		conversationId,
-		availableModels,
+		availableProfiles,
 		newConversationMessage,
 		newConversationModelInstruction,
 	} = useLoaderData<typeof loader>();
 	const initializeChat = useRef(false);
 
 	const lastModelInstruction =
-		availableModels.find((m) => m.id === model)?.systemMessage || undefined;
-	const [selectedModel, selectModel] = useState<{
+		availableProfiles.find((m) => m.id === model)?.systemMessage || undefined;
+	const [selectedProfile, selectProfile] = useState<{
 		model: string;
 		instruction?: string;
 	}>({
@@ -166,13 +166,13 @@ export default function ChatLayout() {
 	// update model and instruction when model changes
 	useEffect(() => {
 		const lastModelInstruction =
-			availableModels.find((m) => m.id === model)?.systemMessage || undefined;
+			availableProfiles.find((m) => m.id === model)?.systemMessage || undefined;
 
 		selectModel({
 			model: model,
 			instruction: newConversationModelInstruction || lastModelInstruction,
 		});
-	}, [model, newConversationModelInstruction, availableModels]);
+	}, [model, newConversationModelInstruction, availableProfiles]);
 
 	// if this is a new conversation, execute initial message
 	useEffectOnce(() => {
@@ -258,13 +258,13 @@ export default function ChatLayout() {
 					setData(undefined);
 					handleSubmit();
 				}}
-				handleModelChange={(model, instruction) => {
-					selectModel({ model, instruction });
+				handleProfileChange={(profile, instruction) => {
+					selectProfile({ profile, instruction });
 				}}
 				input={input}
 				isLoading={isLoading}
-				availableModels={availableModels}
-				selectedModel={selectedModel.model}
+				availableProfiles={availableProfiles}
+				selectedProfile={selectedProfile?.id}
 			/>
 		</div>
 	);

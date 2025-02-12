@@ -20,12 +20,12 @@ import { Label } from "~/components/ui/label";
 import { SearchableSelect } from "~/components/ui/searchable-select";
 import { Textarea } from "~/components/ui/textarea";
 import { db } from "~/lib/db";
-import { models as modelsTable } from "~/lib/db.schema";
-import type { action as deleteModelAction } from "./api.settings.delete-model";
+import { profiles } from "~/lib/db.schema";
+import type { action as deleteProfileAction } from "./api.settings.delete-profile";
 
 export async function loader() {
-	const availableModels = await db.select().from(modelsTable);
-	return { availableModels };
+	const availableProfiles = await db.select().from(profiles);
+	return { availableProfiles };
 }
 
 export async function action({ request }: ActionFunctionArgs) {
@@ -40,7 +40,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
 	// upsert model
 	await db
-		.insert(modelsTable)
+		.insert(profiles)
 		.values({
 			id: id !== "" ? id : TwitterSnowflake.generate().toString(),
 			modelId: modelId,
@@ -50,7 +50,7 @@ export async function action({ request }: ActionFunctionArgs) {
 			isDefault: isDefault,
 		})
 		.onConflictDoUpdate({
-			target: modelsTable.id,
+			target: profiles.id,
 			set: {
 				modelId: modelId,
 				name: name,
@@ -61,7 +61,7 @@ export async function action({ request }: ActionFunctionArgs) {
 		});
 
 	return {
-		message: "Model saved",
+		message: "Profile saved",
 	};
 }
 
@@ -69,7 +69,7 @@ export default function Settings() {
 	const navigation = useNavigation();
 	const location = useLocation();
 	const upsertAction = useActionData<typeof action>();
-	const deleteAction = useActionData<typeof deleteModelAction>();
+	const deleteAction = useActionData<typeof deleteProfileAction>();
 	const { data: openrouterModels, isLoading } = useSWR(
 		"https://openrouter.ai/api/v1/models",
 		async (url) => {
@@ -84,7 +84,7 @@ export default function Settings() {
 			},
 		},
 	);
-	const { availableModels } = useLoaderData<typeof loader>();
+	const { availableProfiles } = useLoaderData<typeof loader>();
 	const submit = useSubmit();
 	const [formValues, setFormValues] = useState({
 		id: "",
@@ -92,7 +92,7 @@ export default function Settings() {
 		name: "",
 		systemMessage: "",
 		metadata: "{}",
-		isDefault: availableModels.length === 0,
+		isDefault: availableProfiles.length === 0,
 	});
 
 	// show success message
@@ -111,10 +111,10 @@ export default function Settings() {
 				name: "",
 				systemMessage: "",
 				metadata: "{}",
-				isDefault: availableModels.length === 0,
+				isDefault: availableProfiles.length === 0,
 			});
 		}
-	}, [location, availableModels]);
+	}, [location, availableProfiles]);
 
 	const upsertHandler = () => {
 		submit(formValues, { method: "post", encType: "application/json" });
@@ -133,14 +133,14 @@ export default function Settings() {
 			<h1 className="text-lg font-bold mt-4">Settings</h1>
 
 			<div className="w-full max-w-[600px] border-[1px] p-4 rounded-sm mt-4">
-				<h2 className="font-semibold">Add new model</h2>
+				<h2 className="font-semibold">Add new profile</h2>
 
 				<Form
 					key={location.key}
 					className="mt-4 space-y-4 flex flex-col"
 				>
 					<div className="space-y-2">
-						<Label htmlFor="model">Model <span className="text-red-500">*</span></Label>
+						<Label htmlFor="model">Profile <span className="text-red-500">*</span></Label>
 						<SearchableSelect
 							disabled={isLoading || navigation.state === "submitting"}
 							onChange={(option) => {
@@ -190,14 +190,14 @@ export default function Settings() {
 
 					<div className="flex justify-between items-center">
 						<div className="flex items-center gap-2">
-							<Label htmlFor="default">Default model</Label>
+							<Label htmlFor="default">Default profile</Label>
 							<Checkbox
 								id="default"
 								disabled={
 									isLoading ||
 									formValues.id === "" ||
 									navigation.state === "submitting" ||
-									availableModels.length === 1 // if only one model, it is default
+									availableProfiles.length === 1 // if only one profile, it is default
 								}
 								onCheckedChange={(value) =>
 									setFormValues({ ...formValues, isDefault: value === true })
@@ -231,20 +231,20 @@ export default function Settings() {
 				</Form>
 			</div>
 
-			<h1 className="mt-8 text-lg font-bold">Models</h1>
-			{availableModels.length > 0 && (
+			<h1 className="mt-8 text-lg font-bold">Profiles</h1>
+			{availableProfiles.length > 0 && (
 				<div className="w-full max-w-[600px] mt-4 space-y-4">
-					{availableModels.map((model) => (
+					{availableProfiles.map((profile) => (
 						<div
-							key={model.id}
+							key={profile.id}
 							className="text-sm border-[1px] rounded-sm p-4 space-y-2"
 						>
 							<h2 className="font-semibold">
-								{model.name} {model.isDefault ? "(Default)" : ""}
+								{profile.name} {profile.isDefault ? "(Default)" : ""}
 							</h2>
 							<div className="">
 								<div>Instruction</div>
-								<div>{model.systemMessage || "-"}</div>
+								<div>{profile.systemMessage || "-"}</div>
 							</div>
 
 							<Form
@@ -256,12 +256,12 @@ export default function Settings() {
 									size={"sm"}
 									onClick={() =>
 										setFormValues({
-											id: model.id,
-											modelId: model.modelId,
-											name: model.name,
-											metadata: model.metadata,
-											systemMessage: model.systemMessage || "",
-											isDefault: model.isDefault === 1,
+											id: profile.id,
+											modelId: profile.modelId,
+											name: profile.name,
+											metadata: profile.metadata,
+											systemMessage: profile.systemMessage || "",
+											isDefault: profile.isDefault === 1,
 										})
 									}
 								>
@@ -273,11 +273,11 @@ export default function Settings() {
 									size={"sm"}
 									onClick={() => {
 										submit(
-											{ id: model.id, isDefault: model.isDefault === 1 },
+											{ id: profile.id, isDefault: profile.isDefault === 1 },
 											{ method: "post", encType: "application/json" },
 										);
 									}}
-									disabled={availableModels.length === 1}
+									disabled={availableProfiles.length === 1}
 								>
 									<Trash /> Remove
 								</Button>

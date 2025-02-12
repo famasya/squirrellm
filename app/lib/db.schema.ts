@@ -6,7 +6,7 @@ export const conversations = s.sqliteTable("conversations", {
 	name: s.text().notNull(),
 });
 
-export const models = s.sqliteTable("models", {
+export const profiles = s.sqliteTable("profiles", {
 	id: s.text().primaryKey().notNull(),
 	modelId: s.text().notNull(),
 	name: s.text().notNull(),
@@ -25,5 +25,6 @@ export const messages = s.sqliteTable("messages", {
 	completionToken: s.integer().default(0),
 	totalToken: s.integer().default(0),
 	reasoning: s.text(),
+	modelId: s.text().references(() => profiles.id), // nullable, we dont want to delete messages when we delete a model
 	conversationId: s.text().notNull().references(() => conversations.id, { onDelete: "cascade" }),
 });

@@ -4,32 +4,32 @@ import { ClientOnly } from "remix-utils/client-only";
 import { AutosizeTextarea } from "~/components/ui/autosize-textarea";
 import { Button } from "~/components/ui/button";
 import { SearchableSelect } from "~/components/ui/searchable-select";
-import type { models } from "~/lib/db.schema";
+import type { profiles } from "~/lib/db.schema";
 
 type Props = {
 	handleSend: () => void;
 	input: string;
 	isLoading: boolean;
-	selectedModel: string;
+	selectedProfile: string;
 	stop: () => void;
 	id: string;
 	scrollToBottom: () => void;
-	handleModelChange: (model: string, instruction?: string) => void;
+	handleProfileChange: (profile: string, instruction?: string) => void;
 	handleInputChange: (event: React.ChangeEvent<HTMLTextAreaElement>) => void;
-	availableModels: InferSelectModel<typeof models>[];
+	availableProfiles: InferSelectModel<typeof profiles>[];
 };
 
 export default function AppChatbox({
-	availableModels,
+	availableProfiles,
 	input,
-	selectedModel,
+	selectedProfile,
 	isLoading,
 	id,
 	scrollToBottom,
 	stop,
 	handleInputChange,
 	handleSend,
-	handleModelChange,
+	handleProfileChange,
 }: Props) {
 	const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
 		if (event.key === "Enter" && !event.shiftKey) {
@@ -39,9 +39,9 @@ export default function AppChatbox({
 	};
 
 	const onModelChange = (option: { value: string; label: string }) => {
-		const selectedModel = availableModels.find((m) => m.id === option.value);
+		const selectedModel = availableProfiles.find((m) => m.id === option.value);
 		if (selectedModel) {
-			handleModelChange(
+			handleProfileChange(
 				selectedModel.id,
 				selectedModel.systemMessage || undefined,
 			);
@@ -72,8 +72,8 @@ export default function AppChatbox({
 						<div className="flex items-center gap-2 w-1/3">
 							<SearchableSelect
 								className="w-full"
-								value={selectedModel}
-								options={availableModels.map((model) => ({
+								value={selectedProfile}
+								options={availableProfiles.map((model) => ({
 									value: model.id,
 									label: model.name,
 								}))}
