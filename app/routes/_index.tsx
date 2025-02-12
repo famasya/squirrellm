@@ -23,8 +23,8 @@ type Profile = InferSelectModel<typeof profiles>;
 export async function action({ request }: ActionFunctionArgs) {
 	const session = await getSession(request.headers.get("Cookie"));
 
-	const { profileId, message, model, instruction } = await request.json();
-	if (!message || !model || !profileId) {
+	const { profileId, message } = await request.json();
+	if (!message || !profileId) {
 		throw new Error("Message and model are required");
 	}
 
@@ -41,8 +41,6 @@ export async function action({ request }: ActionFunctionArgs) {
 	session.flash("newConversation", {
 		profileId: profileId,
 		message: message,
-		model: model,
-		instruction: instruction?.toString(),
 	});
 
 	return redirect(`/chat/${newSession.id}`, {
@@ -83,7 +81,16 @@ export default function AppHome() {
 					<Squirrel />
 					How may I help you?
 				</h1>
-				<Form autoComplete="off">
+				<Form
+					autoComplete="off"
+					onSubmit={(e) => {
+						e.preventDefault();
+						submit(newSession, {
+							method: "post",
+							encType: "application/json",
+						});
+					}}
+				>
 					<Input
 						placeholder="Ask me anything..."
 						value={newSession.message}
@@ -109,18 +116,18 @@ export default function AppHome() {
 								value={newSession.profileId}
 								onChange={({ value: profileId }) => {
 									// find modelId
-									const model = availableProfiles.find(
+									const profile = availableProfiles.find(
 										(profile) => profile.id === profileId,
 									) as Profile;
 									setNewSession({
 										...newSession,
 										profileId,
-										model: model.modelId,
-										instruction: model.systemMessage,
+										model: profile.modelId,
+										instruction: profile.systemMessage,
 									});
 								}}
 								options={availableProfiles.map((profile) => ({
-									value: profile.modelId,
+									value: profile.id,
 									label: profile.name,
 								}))}
 								placeholder="Select a profile"
@@ -128,17 +135,11 @@ export default function AppHome() {
 						</div>
 
 						<Button
-							type="button"
+							type="submit"
 							disabled={
 								availableProfiles.length === 0 ||
 								newSession.message.length === 0
 							}
-							onClick={() => {
-								submit(newSession, {
-									method: "post",
-									encType: "application/json",
-								});
-							}}
 						>
 							{navigation.state === "submitting" ? (
 								<>

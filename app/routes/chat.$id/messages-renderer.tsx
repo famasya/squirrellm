@@ -40,9 +40,11 @@ export default function MessagesRenderer({
 			<div className="px-3 pt-2 flex-1 overflow-auto" ref={scrollRef}>
 				<ScrollArea className="h-full overflow-y-auto pr-4" type="always">
 					<div className="min-h-[100%]">
-						<div className="text-center text-gray-500 text-sm">
-							Conversation begins at{" "}
-							{format(messages[0]?.createdAt || Date.now(), "dd/MM/yy HH:mm")}
+						<div className="text-center text-gray-500 mt-2 text-sm">
+							<span className="bg-white/5 px-2 py-1 rounded-full">
+								Conversation begins at{" "}
+								{format(messages[0]?.createdAt || Date.now(), "dd/MM/yy HH:mm")}
+							</span>
 						</div>
 						{messages.map((message, index) => {
 							const messageModelUsed = message.annotations?.[0] as

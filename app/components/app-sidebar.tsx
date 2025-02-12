@@ -36,7 +36,7 @@ export default function AppSidebar() {
 	const navigation = useNavigation();
 	const { refreshConversationsListKey } = useChatStore();
 
-	const { data, isLoading, size, setSize } = useSWRInfinite(
+	const { data, isLoading, size, setSize, mutate } = useSWRInfinite(
 		(index, previousPageData: ConversationsResponse["conversations"]) => {
 			if (previousPageData && !previousPageData.length) return null;
 			if (index === 0) return "/api/conversations";
@@ -61,9 +61,11 @@ export default function AppSidebar() {
 	// revalidate all on navigation state or refreshConversationsListKey change
 	useEffect(() => {
 		if (navigation.state !== "idle" || refreshConversationsListKey) {
-			setSize(1);
+			mutate(undefined, {
+				revalidate: true,
+			});
 		}
-	}, [navigation.state, setSize, refreshConversationsListKey]);
+	}, [navigation.state, mutate, refreshConversationsListKey]);
 
 	const conversations = data?.flat();
 	const isActive = (id: string) => params.id === id;

@@ -95,8 +95,9 @@ export default function ChatLayout() {
 				message: {
 					...messages[messages.length - 1],
 					modelId: selectedProfile.modelId,
+					profileId: selectedProfile.id,
 					conversationId: conversationId,
-					instruction: selectedProfile.instruction,
+					instruction: selectedProfile.systemMessage,
 					temperature: selectedProfile.temperature,
 				},
 			};
@@ -147,13 +148,18 @@ export default function ChatLayout() {
 					setData(undefined);
 					handleSubmit();
 				}}
-				handleProfileChange={(profileId, modelId, temperature, instruction) => {
+				handleProfileChange={(
+					profileId,
+					modelId,
+					temperature,
+					systemMessage,
+				) => {
 					selectProfile({
 						...selectedProfile,
 						id: profileId,
 						modelId: modelId,
 						temperature: temperature,
-						instruction: instruction,
+						systemMessage: systemMessage,
 					});
 				}}
 				input={input}

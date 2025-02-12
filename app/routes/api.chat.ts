@@ -17,6 +17,7 @@ export type ChatPayload = {
 		instruction: string | null;
 		conversationId: string;
 		temperature: string;
+		profileId: string;
 	};
 };
 export async function action({ request }: ActionFunctionArgs) {
@@ -45,6 +46,7 @@ export async function action({ request }: ActionFunctionArgs) {
 				content: message.content,
 				model: modelId,
 				conversationId: conversationId,
+				profileId: message.profileId,
 			})
 			.onConflictDoNothing();
 
@@ -86,6 +88,7 @@ export async function action({ request }: ActionFunctionArgs) {
 									totalToken: response.usage.totalTokens,
 									reasoning: response.reasoning,
 									conversationId: conversationId,
+									profileId: message.profileId,
 								})
 								.onConflictDoNothing();
 						}
