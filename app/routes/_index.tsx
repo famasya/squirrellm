@@ -77,7 +77,7 @@ export default function AppHome() {
 	return (
 		<div className="flex h-full items-center justify-center">
 			<div className="w-full max-w-[800px] space-y-2 flex flex-col text-center bg-white/5 px-8 py-4 md:p-8 rounded-xl shadow-sm">
-				<h1 className="text-xl font-semibold mb-2 flex items-center justify-center gap-4">
+				<h1 className="text-lg sm:text-xl font-semibold mb-2 flex items-center justify-center gap-4">
 					<Squirrel />
 					How may I help you?
 				</h1>
@@ -106,8 +106,8 @@ export default function AppHome() {
 						autoFocus
 					/>
 
-					<div className="w-full flex justify-between mt-2">
-						<div className="flex gap-2 items-center w-">
+					<div className="w-full flex flex-col sm:flex-row gap-2 justify-between mt-2">
+						<div className="flex gap-2 items-center w-full sm:w-1/3">
 							<SearchableSelect
 								disabled={
 									navigation.state === "submitting" ||
@@ -129,6 +129,7 @@ export default function AppHome() {
 								options={availableProfiles.map((profile) => ({
 									value: profile.id,
 									label: profile.name,
+									description: profile.modelId.split("/")[1],
 								}))}
 								placeholder="Select a profile"
 							/>

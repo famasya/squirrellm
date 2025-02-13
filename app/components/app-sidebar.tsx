@@ -36,26 +36,28 @@ export default function AppSidebar() {
 	const navigation = useNavigation();
 	const { refreshConversationsListKey } = useChatStore();
 
-	const { data, isLoading, size, setSize, mutate } = useSWRInfinite(
-		(index, previousPageData: ConversationsResponse["conversations"]) => {
-			if (previousPageData && !previousPageData.length) return null;
-			if (index === 0) return "/api/conversations";
-			return `/api/conversations?cursor=${nextCursor}`;
-		},
-		async (url) => {
-			const res = await fetch(url);
-			const data = (await res.json()) as ConversationsResponse;
-			setNextCursor(data.cursor);
-			return data.conversations;
-		},
-		{
-			revalidateFirstPage: false,
-			onError: (error) => {
-				console.error(error);
-				toast.error("Error loading conversations");
+	const { data, isLoading, isValidating, size, setSize, mutate } =
+		useSWRInfinite(
+			(index, previousPageData: ConversationsResponse["conversations"]) => {
+				if (previousPageData && !previousPageData.length) return null;
+				if (index === 0) return "/api/conversations";
+				return `/api/conversations?cursor=${nextCursor}`;
 			},
-		},
-	);
+			async (url) => {
+				const res = await fetch(url);
+				const data = (await res.json()) as ConversationsResponse;
+				setNextCursor(data.cursor);
+				return data.conversations;
+			},
+			{
+				revalidateFirstPage: false,
+				keepPreviousData: true,
+				onError: (error) => {
+					console.error(error);
+					toast.error("Error loading conversations");
+				},
+			},
+		);
 	const { isGeneratingResponse } = useChatStore();
 
 	// revalidate all on navigation state or refreshConversationsListKey change
@@ -94,7 +96,7 @@ export default function AppSidebar() {
 						<SidebarGroup className={cn(state === "collapsed" && "hidden")}>
 							<SidebarGroupLabel>Conversations</SidebarGroupLabel>
 							<SidebarMenu>
-								{isLoading
+								{isLoading && !isValidating
 									? Array(3)
 											.fill(0)
 											.map((_, i) => (
@@ -140,9 +142,7 @@ export default function AppSidebar() {
 												<>
 													<CircleEllipsis className="w-4 h-4" /> Load More
 												</>
-											) : (
-												<>{!isLoading ? "No more conversations" : null}</>
-											)}
+											) : null}
 										</span>
 									</SidebarMenuButton>
 								</SidebarMenuItem>

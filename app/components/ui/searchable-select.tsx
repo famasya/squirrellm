@@ -22,6 +22,7 @@ import { cn } from "~/lib/utils";
 type Option = {
 	value: string;
 	label: string;
+	description?: string;
 };
 
 interface SearchableSelectProps {
@@ -83,7 +84,16 @@ export function SearchableSelect({
 									}}
 									className="w-full flex items-center justify-between"
 								>
-									<span>{option.label}</span>
+									<div className="flex flex-col">
+										{option.label}
+										<div>
+											{option.description && (
+												<span className="text-muted-foreground text-xs">
+													{option.description}
+												</span>
+											)}
+										</div>
+									</div>
 									<Check
 										className={cn(
 											"h-4 w-4 shrink-0",

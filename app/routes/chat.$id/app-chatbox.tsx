@@ -74,6 +74,7 @@ export default function AppChatbox({
 								options={availableProfiles.map((profile) => ({
 									value: profile.id,
 									label: profile.name,
+									description: profile.modelId.split("/")[1],
 								}))}
 								onChange={onProfileChange}
 								placeholder="Select a profile"
