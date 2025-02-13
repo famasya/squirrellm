@@ -51,14 +51,13 @@ export default function AppSidebar() {
 			},
 			{
 				revalidateFirstPage: false,
-				keepPreviousData: true,
 				onError: (error) => {
 					console.error(error);
 					toast.error("Error loading conversations");
 				},
 			},
 		);
-	const { isGeneratingResponse } = useChatStore();
+	const { messageStatus } = useChatStore();
 
 	// revalidate all on navigation state or refreshConversationsListKey change
 	useEffect(() => {
@@ -108,7 +107,7 @@ export default function AppSidebar() {
 											<SidebarMenuItem key={conversation.id}>
 												<NavLink to={`/chat/${conversation.id}`}>
 													<SidebarMenuButton
-														disabled={isGeneratingResponse}
+														disabled={messageStatus !== null}
 														className={cn(
 															isActive(conversation.id) &&
 																"bg-sidebar-accent text-sidebar-accent-foreground",
@@ -127,7 +126,7 @@ export default function AppSidebar() {
 													</SidebarMenuButton>
 												</NavLink>
 												<ConversationOptions
-													disabled={isGeneratingResponse}
+													disabled={messageStatus !== null}
 													id={conversation.id}
 												/>
 											</SidebarMenuItem>

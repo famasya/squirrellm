@@ -92,6 +92,13 @@
       "when": 1739378045247,
       "tag": "0012_big_tiger_shark",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1739457644682,
+      "tag": "0013_lumpy_killmonger",
+      "breakpoints": true
     }
   ]
 }

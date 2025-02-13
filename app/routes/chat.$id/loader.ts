@@ -28,13 +28,16 @@ export const loadMessages = async ({
 	const lastMessage = messages[messages.length - 1] as
 		| (typeof messages)[0]
 		| undefined;
-	let lastProfile = availableProfiles.find(
-		(p) => p.id === lastMessage?.profileId || newConversation?.profileId,
-	);
+	let profile = availableProfiles.find((p) => {
+		if (!lastMessage) {
+			return p.id === newConversation?.profileId;
+		}
+		return p.id === lastMessage?.profileId;
+	});
 
 	// if no profile found, select default. default profile must be present since minimum 1 profile is required for the app to work.
-	if (!lastProfile) {
-		lastProfile = availableProfiles.find((p) => p.isDefault === 1) as Profile;
+	if (!profile) {
+		profile = availableProfiles.find((p) => p.isDefault === 1) as Profile;
 	}
 
 	// cache messages to redis for 1 hour
@@ -43,7 +46,7 @@ export const loadMessages = async ({
 	return {
 		previousMessages: messages,
 		pageTitle: messages[0]?.content || newConversation?.message,
-		profile: lastProfile,
+		profile: profile,
 		newConversation,
 		conversationId,
 		availableProfiles,

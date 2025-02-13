@@ -10,28 +10,40 @@ import {
 	AccordionTrigger,
 } from "~/components/ui/accordion";
 import { Avatar, AvatarFallback } from "~/components/ui/avatar";
+import { Button } from "~/components/ui/button";
+import useChatStore from "~/lib/stores";
 import { cn } from "~/lib/utils";
 
 type Props = {
 	isBot?: boolean;
 	model?: string;
 	ref?: React.RefObject<HTMLDivElement>;
-	isThinking?: boolean;
 	message: UseChatHelpers["messages"][0];
+	isLastMessage: boolean;
+	retryAction: () => void;
 };
 
 export default function ChatBubble({
 	isBot,
 	model,
 	ref,
-	isThinking,
 	message,
+	isLastMessage,
+	retryAction,
 }: Props) {
-	const showThinking = isBot && isThinking;
+	const { messageStatus } = useChatStore();
+	const isThinking = isLastMessage && messageStatus?.status === "thinking";
+	const isFailed =
+		messageStatus?.messageId === message.id &&
+		messageStatus.status === "failed";
+	const prevMessageStatus = message.annotations?.[0] as
+		| { isSent?: boolean }
+		| undefined;
 	const containsReasoning =
 		message.parts.find((part) => part.type === "reasoning") !== undefined;
+
 	return (
-		<div className="my-2">
+		<div className={cn("my-2", !isBot && "ml-auto text-right")}>
 			{!isBot && (
 				<div className="text-sm text-gray-500 text-right mr-3 mb-1">
 					You at {format(message.createdAt || Date.now(), "HH:mm")}
@@ -62,7 +74,7 @@ export default function ChatBubble({
 							>
 								{model}
 							</a>
-							{showThinking ? (
+							{isThinking && !isFailed ? (
 								<span className="animate-pulse flex flex-row items-center gap-2">
 									is thinking...
 								</span>
@@ -133,6 +145,16 @@ export default function ChatBubble({
 					</div>
 				</div>
 			</div>
+
+			{/* show failed */}
+			{isFailed || prevMessageStatus?.isSent === false ? (
+				<div className="text-xs">
+					Execution failed.{" "}
+					<Button onClick={retryAction} variant={"link"} size={"sm"}>
+						Retry?
+					</Button>{" "}
+				</div>
+			) : null}
 		</div>
 	);
 }

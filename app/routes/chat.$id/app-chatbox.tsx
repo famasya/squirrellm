@@ -4,11 +4,11 @@ import { AutosizeTextarea } from "~/components/ui/autosize-textarea";
 import { Button } from "~/components/ui/button";
 import { SearchableSelect } from "~/components/ui/searchable-select";
 import type { profiles } from "~/lib/db.schema";
+import useChatStore from "~/lib/stores";
 
 type Props = {
 	handleSend: () => void;
 	input: string;
-	isLoading: boolean;
 	selectedProfile: string;
 	stop: () => void;
 	id: string;
@@ -26,13 +26,13 @@ export default function AppChatbox({
 	availableProfiles,
 	input,
 	selectedProfile,
-	isLoading,
 	id,
 	stop,
 	handleInputChange,
 	handleSend,
 	handleProfileChange,
 }: Props) {
+	const { messageStatus } = useChatStore();
 	const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
 		if (event.key === "Enter" && !event.shiftKey) {
 			event.preventDefault();
@@ -84,11 +84,13 @@ export default function AppChatbox({
 						{/* controls */}
 						<div className="flex items-center gap-2">
 							<Button
-								disabled={input === "" && !isLoading}
-								onClick={isLoading ? stop : handleSend}
+								disabled={input === "" && messageStatus === null}
+								onClick={
+									messageStatus?.status === "thinking" ? stop : handleSend
+								}
 								className="flex items-center justify-center"
 							>
-								{isLoading ? (
+								{messageStatus?.status === "thinking" ? (
 									<span className="flex items-center gap-2">
 										<StopCircle /> Stop
 									</span>

@@ -8,7 +8,7 @@ import { GlobalErrorBoundary } from "~/components/global-error-boundary";
 import useChatStore from "~/lib/stores";
 import { useEffectOnce } from "~/lib/utils";
 import { commitSession, getSession } from "~/sessions";
-import type { ChatPayload } from "../api.chat";
+import type { ChatPayload, MessageStatus } from "../api.chat";
 import AppChatbox from "./app-chatbox";
 import { loadMessages } from "./loader";
 import MessagesRenderer from "./messages-renderer";
@@ -56,11 +56,12 @@ export default function ChatLayout() {
 	const {
 		messages,
 		input,
-		isLoading,
 		data,
 		stop,
 		setData,
 		append,
+		reload,
+		setMessages,
 		handleInputChange,
 		handleSubmit,
 	} = useChat({
@@ -85,7 +86,7 @@ export default function ChatLayout() {
 				role: message.role as "assistant" | "user",
 				id: message.id,
 				parts: parts,
-				annotations: [{ model: message.model }],
+				annotations: [{ model: message.model, isSent: message.sent }],
 				createdAt: new Date(message.createdAt),
 			};
 		}),
@@ -108,11 +109,16 @@ export default function ChatLayout() {
 			toast.error(error.message);
 		},
 	});
-	const { setIsGeneratingResponse } = useChatStore();
+	const { setMessageStatus } = useChatStore();
 
+	// set message status based on stream
 	useEffect(() => {
-		setIsGeneratingResponse(isLoading);
-	}, [isLoading, setIsGeneratingResponse]);
+		const lastStatus = data?.pop();
+		if (lastStatus) {
+			const status = JSON.parse(lastStatus as string) as MessageStatus;
+			setMessageStatus(status.status === "done" ? null : status);
+		}
+	}, [data, setMessageStatus]);
 
 	// if this is a new conversation, execute initial message
 	useEffectOnce(() => {
@@ -132,8 +138,28 @@ export default function ChatLayout() {
 	return (
 		<div className="w-full flex flex-col h-full overflow-hidden">
 			<MessagesRenderer
+				retryAction={(id) => {
+					setData(undefined);
+					// modify message in client side
+					setMessages((messages) => {
+						return messages.map((message) => {
+							if (message.id === id) {
+								return {
+									...message,
+									annotations: [
+										{
+											model: selectedProfile.modelId,
+											isSent: true,
+										},
+									],
+								};
+							}
+							return message;
+						});
+					});
+					reload();
+				}}
 				messages={messages}
-				data={data}
 				selectedModel={selectedProfile.modelId}
 			/>
 
@@ -163,7 +189,6 @@ export default function ChatLayout() {
 					});
 				}}
 				input={input}
-				isLoading={isLoading}
 				availableProfiles={availableProfiles}
 				selectedProfile={selectedProfile?.id}
 			/>

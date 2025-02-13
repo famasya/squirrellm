@@ -1,4 +1,3 @@
-import type { JSONValue } from "ai";
 import type { UseChatHelpers } from "ai/react";
 import { format } from "date-fns";
 import { useEffect, useRef } from "react";
@@ -7,13 +6,13 @@ import ChatBubble from "./chat-bubble";
 
 type Props = {
 	messages: UseChatHelpers["messages"];
-	data?: JSONValue[];
 	selectedModel: string;
+	retryAction: (id: string) => void;
 };
 export default function MessagesRenderer({
 	messages,
-	data,
 	selectedModel,
+	retryAction,
 }: Props) {
 	const scrollRef = useRef<HTMLDivElement>(null);
 	const lastMessageRef = useRef<HTMLDivElement>(null);
@@ -52,17 +51,15 @@ export default function MessagesRenderer({
 							| undefined
 							| { model: string };
 						const isLastMessage = index === messages.length - 1;
-						const nowThinking =
-							data?.includes("<thinking>") &&
-							!data.includes("<done>") &&
-							isLastMessage;
+
 						return (
 							<div key={message.id} className={cn(isLastMessage && "mb-8")}>
 								<ChatBubble
-									isThinking={nowThinking}
 									model={messageModelUsed?.model || selectedModel}
 									isBot={message.role === "assistant"}
 									message={message}
+									isLastMessage={isLastMessage}
+									retryAction={() => retryAction(message.id)}
 								/>
 							</div>
 						);

@@ -103,7 +103,7 @@ body {
 	}
 
 	::-webkit-scrollbar-thumb {
-		@apply rounded-full bg-muted-foreground;
+		@apply rounded-full bg-white/80;
 	}
 
 	input:-webkit-autofill,

@@ -1,15 +1,15 @@
 import { create } from "zustand";
+import type { MessageStatus } from "~/routes/api.chat";
 
 type ChatStore = {
-	isGeneratingResponse: boolean;
-	setIsGeneratingResponse: (isGeneratingResponse: boolean) => void;
+	messageStatus: MessageStatus | null;
+	setMessageStatus: (status: MessageStatus | null) => void;
 	refreshConversationsListKey: number;
 	refreshConversationsList: () => void;
 };
 const useChatStore = create<ChatStore>((set) => ({
-	isGeneratingResponse: false,
-	setIsGeneratingResponse: (isGeneratingResponse) =>
-		set(() => ({ isGeneratingResponse })),
+	messageStatus: null,
+	setMessageStatus: (messageStatus) => set(() => ({ messageStatus })),
 	refreshConversationsListKey: 0,
 	refreshConversationsList: () =>
 		set((state) => ({
