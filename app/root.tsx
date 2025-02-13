@@ -1,10 +1,4 @@
-import {
-	ClerkApp,
-	ClerkProvider,
-	RedirectToSignIn,
-	SignedIn,
-	SignedOut,
-} from "@clerk/remix";
+import { ClerkApp, RedirectToSignIn, SignedIn, SignedOut } from "@clerk/remix";
 import { rootAuthLoader } from "@clerk/remix/ssr.server";
 import type {
 	LinksFunction,
@@ -22,6 +16,7 @@ import { Loader2 } from "lucide-react";
 import { Suspense } from "react";
 import AppHeader from "./components/app-header";
 import AppSidebar from "./components/app-sidebar";
+import { GlobalErrorBoundary } from "./components/global-error-boundary";
 import { SidebarProvider } from "./components/ui/sidebar";
 import { Toaster } from "./components/ui/sonner";
 import { TooltipProvider } from "./components/ui/tooltip";
@@ -56,7 +51,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 				<Meta />
 				<Links />
 			</head>
-			<body className="dark:bg-zinc-900">
+			<body className="dark:bg-zinc-900 min-h-screen overflow-hidden">
 				{children}
 				<ScrollRestoration />
 				<Scripts />
@@ -71,7 +66,7 @@ function App() {
 			<SignedIn>
 				<SidebarProvider className="flex h-screen">
 					<AppSidebar />
-					<div className="flex flex-col flex-1">
+					<div className="flex flex-col flex-1 overflow-x-hidden">
 						<AppHeader />
 						<div className="px-3 flex-1 min-h-0 dark:bg-zinc-900 overflow-auto">
 							<Toaster
@@ -104,6 +99,10 @@ function App() {
 			</SignedOut>
 		</>
 	);
+}
+
+export function ErrorBoundary() {
+	return <GlobalErrorBoundary />;
 }
 
 export default ClerkApp(App);

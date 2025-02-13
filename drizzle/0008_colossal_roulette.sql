@@ -1,0 +1,2 @@
+ALTER TABLE `messages` RENAME COLUMN "sessionId" TO "conversationId";--> statement-breakpoint
+ALTER TABLE `messages` ALTER COLUMN "conversationId" TO "conversationId" text NOT NULL REFERENCES conversations(id) ON DELETE cascade ON UPDATE no action;

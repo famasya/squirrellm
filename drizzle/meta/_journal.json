@@ -57,6 +57,41 @@
       "when": 1739173271647,
       "tag": "0007_wooden_roxanne_simpson",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1739275582452,
+      "tag": "0008_colossal_roulette",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1739284776087,
+      "tag": "0009_useful_franklin_storm",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1739353674222,
+      "tag": "0010_zippy_mauler",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1739375847768,
+      "tag": "0011_flippant_shinko_yamashiro",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1739378045247,
+      "tag": "0012_big_tiger_shark",
+      "breakpoints": true
     }
   ]
 }

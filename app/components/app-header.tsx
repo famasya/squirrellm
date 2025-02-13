@@ -1,4 +1,5 @@
 import { UserButton } from "@clerk/remix";
+import { Link } from "@remix-run/react";
 import { SidebarIcon } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { useSidebar } from "~/components/ui/sidebar";
@@ -18,8 +19,10 @@ export default function AppHeader() {
 					<SidebarIcon />
 				</Button>
 				<div className="flex-1">
-					<span className="font-bold">OpenRouter </span>
-					<span>Chat</span>
+					<Link to={"/"}>
+						<span className="font-bold">OpenRouter </span>
+						<span>Chat</span>
+					</Link>
 				</div>
 				<div className="mr-4">
 					<UserButton appearance={userButtonAppearance} />

@@ -1,0 +1,18 @@
+services:
+  app:
+    build:
+      context: ./
+      dockerfile: .build/Dockerfile
+    ports: 
+      - 3000:3000
+    environment:
+      - OPENROUTER_API_KEY=
+      - CLERK_PUBLISHABLE_KEY=
+      - CLERK_SECRET_KEY=
+      - DATABASE_URL= # turso url
+      - SESSION_SECRET= # generate with `openssl rand -hex 16`
+      - DATABASE_AUTH_TOKEN=
+      - REDIS_URL=redis://redis:6379
+
+  redis:
+    image: redis:7.2.7-alpine

@@ -4,11 +4,10 @@ type SessionData = {
 	userId: string;
 };
 
-type SessionFlashData = {
+export type SessionFlashData = {
 	newConversation: {
+		profileId: string;
 		message: string;
-		model: string;
-		instruction?: string;
 	};
 };
 

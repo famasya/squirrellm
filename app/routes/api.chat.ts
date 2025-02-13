@@ -11,18 +11,22 @@ import {
 import { db, redis } from "~/lib/db";
 import { messages as messagesTable } from "~/lib/db.schema";
 
-type Payload = Message & {
-	model: string;
-	instruction?: string;
-	conversationId: string;
+export type ChatPayload = {
+	message: Message & {
+		modelId: string;
+		instruction: string | null;
+		conversationId: string;
+		temperature: string;
+		profileId: string;
+	};
 };
 export async function action({ request }: ActionFunctionArgs) {
 	try {
-		const { message } = (await request.json()) as { message: Payload };
+		const { message } = (await request.json()) as ChatPayload;
 		if (!message) {
 			throw new Error("Messages are required");
 		}
-		const { model, instruction, conversationId } = message;
+		const { modelId, instruction, conversationId, temperature } = message;
 
 		const openrouter = createOpenRouter({
 			apiKey: process.env.OPENROUTER_API_KEY,
@@ -40,8 +44,9 @@ export async function action({ request }: ActionFunctionArgs) {
 				role: "user",
 				createdAt: new Date().getTime(),
 				content: message.content,
-				model: model,
-				sessionId: conversationId,
+				model: modelId,
+				conversationId: conversationId,
+				profileId: message.profileId,
 			})
 			.onConflictDoNothing();
 
@@ -51,7 +56,7 @@ export async function action({ request }: ActionFunctionArgs) {
 				dataStream.writeData("<thinking>");
 
 				const aiModel = wrapLanguageModel({
-					model: openrouter(model, {
+					model: openrouter(modelId, {
 						includeReasoning: true,
 					}),
 					middleware: extractReasoningMiddleware({ tagName: "think" }),
@@ -59,10 +64,13 @@ export async function action({ request }: ActionFunctionArgs) {
 				const result = streamText({
 					model: aiModel,
 					abortSignal: request.signal,
+					experimental_continueSteps: true,
+					maxSteps: 5,
+					temperature: Number.parseFloat(temperature),
 					messages,
 					...(instruction && { system: instruction }),
 					onChunk: (chunk) => {
-						dataStream.writeMessageAnnotation({ model: model });
+						dataStream.writeMessageAnnotation({ model: modelId });
 					},
 					onFinish: async (response) => {
 						// once stream is closed, store the messages
@@ -74,12 +82,13 @@ export async function action({ request }: ActionFunctionArgs) {
 									role: "assistant",
 									createdAt: new Date().getTime(),
 									content: response.text,
-									model: model,
+									model: modelId,
 									promptToken: response.usage.promptTokens,
 									completionToken: response.usage.completionTokens,
 									totalToken: response.usage.totalTokens,
 									reasoning: response.reasoning,
-									sessionId: conversationId,
+									conversationId: conversationId,
+									profileId: message.profileId,
 								})
 								.onConflictDoNothing();
 						}
