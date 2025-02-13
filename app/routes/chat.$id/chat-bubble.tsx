@@ -31,7 +31,7 @@ export default function ChatBubble({
 	const containsReasoning =
 		message.parts.find((part) => part.type === "reasoning") !== undefined;
 	return (
-		<div>
+		<div className="my-2">
 			{!isBot && (
 				<div className="text-sm text-gray-500 text-right mr-3 mb-1">
 					You at {format(message.createdAt || Date.now(), "HH:mm")}
@@ -39,8 +39,8 @@ export default function ChatBubble({
 			)}
 			<div
 				className={cn(
-					"p-2 px-4 rounded-full w-fit max-w-[80%] text-sm dark:text-gray-200",
-					!isBot && "bg-primary/10 ml-auto",
+					"p-2 px-4 rounded-full text-sm dark:text-gray-200",
+					!isBot && "bg-primary/10 ml-auto w-fit max-w-[200px]",
 					isBot && "flex flex-row gap-4",
 				)}
 			>
@@ -51,14 +51,14 @@ export default function ChatBubble({
 						</AvatarFallback>
 					</Avatar>
 				)}
-				<div>
+				<div className="overflow-x-hidden">
 					{isBot && (
 						<div className="text-sm text-gray-500 flex flex-row items-center gap-2 mb-2">
 							<a
 								href={`https://openrouter.ai/${model}`}
 								target="_blank"
 								rel="noopener noreferrer"
-								className="underline"
+								className="hover:underline max-w-[200px] md:max-w-none truncate"
 							>
 								{model}
 							</a>
@@ -84,7 +84,7 @@ export default function ChatBubble({
 						defaultValue={message.id}
 					>
 						<AccordionItem value={message.id}>
-							<AccordionTrigger className="m-0 py-2 px-6">
+							<AccordionTrigger className="m-0 py-2 px-6 hover:no-underline">
 								Reasoning
 							</AccordionTrigger>
 							<AccordionContent className="p-0">

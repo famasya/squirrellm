@@ -66,7 +66,7 @@ function App() {
 			<SignedIn>
 				<SidebarProvider className="flex h-screen">
 					<AppSidebar />
-					<div className="flex flex-col flex-1">
+					<div className="flex flex-col flex-1 overflow-x-hidden">
 						<AppHeader />
 						<div className="px-3 flex-1 min-h-0 dark:bg-zinc-900 overflow-auto">
 							<Toaster

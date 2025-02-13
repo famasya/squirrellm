@@ -76,7 +76,7 @@ export default function AppHome() {
 
 	return (
 		<div className="flex h-full items-center justify-center">
-			<div className="w-full max-w-[800px] space-y-2 flex flex-col text-center bg-white/5 p-8 rounded-xl shadow-sm">
+			<div className="w-full max-w-[800px] space-y-2 flex flex-col text-center bg-white/5 px-8 py-4 md:p-8 rounded-xl shadow-sm">
 				<h1 className="text-xl font-semibold mb-2 flex items-center justify-center gap-4">
 					<Squirrel />
 					How may I help you?
