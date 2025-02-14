@@ -47,14 +47,6 @@ export async function action({ request }: ActionFunctionArgs) {
 	}
 
 	return db.transaction(async (tx) => {
-		console.log({
-			id: id !== "" ? id : TwitterSnowflake.generate().toString(),
-			modelId: modelId,
-			name: name,
-			systemMessage: systemMessage || null,
-			metadata: metadata,
-			isDefault: isDefault ? 1 : 0,
-		});
 		// upsert model
 		const [newProfile] = await tx
 			.insert(profiles)

@@ -22,7 +22,7 @@ export default function MessagesRenderer({
 		if (messages.length > 0) {
 			const scrollToBottom = () => {
 				if (lastMessageRef.current) {
-					lastMessageRef.current.scrollIntoView({ behavior: "smooth" });
+					lastMessageRef.current.scrollIntoView({ behavior: "instant" });
 				}
 			};
 			scrollToBottom();

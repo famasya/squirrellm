@@ -35,7 +35,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 export const meta: MetaFunction<typeof loader> = ({ data }) => {
 	return [
 		{
-			title: data?.pageTitle || "OpenRouter Chat",
+			title: data?.pageTitle || "Squirrellm",
 		},
 	];
 };

@@ -138,7 +138,7 @@ body {
 
 	/* Paragraphs and spacing */
 	.markdown-content p {
-		@apply space-y-2;
+		@apply space-y-2 mb-4;
 	}
 
 	/* Lists with proper text wrapping alignment */
