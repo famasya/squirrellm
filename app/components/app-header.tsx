@@ -20,7 +20,7 @@ export default function AppHeader() {
 				</Button>
 				<div className="flex-1">
 					<Link to={"/"}>
-						<span className="font-bold">Squirrellm</span>
+						<span className="font-bold">Squirrellm </span>
 					</Link>
 				</div>
 				<div className="mr-4">

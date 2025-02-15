@@ -73,7 +73,6 @@ export default function AppHome() {
 	});
 	const navigation = useNavigation();
 	const submit = useSubmit();
-	console.log(newSession, 321);
 
 	return (
 		<div className="flex h-full items-center justify-center">

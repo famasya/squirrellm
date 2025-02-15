@@ -39,8 +39,11 @@ export default function ChatBubble({
 	const prevMessageStatus = message.annotations?.[0] as
 		| { isSent?: boolean }
 		| undefined;
-	const containsReasoning =
-		message.parts.find((part) => part.type === "reasoning") !== undefined;
+	const containsReasoning = message.parts.find(
+		(part) => part.type === "reasoning",
+	);
+	const showReasoning =
+		containsReasoning && containsReasoning.reasoning.length > 5 && isBot;
 
 	return (
 		<div className={cn("my-2", !isBot && "ml-auto text-right")}>
@@ -52,8 +55,8 @@ export default function ChatBubble({
 			<div
 				className={cn(
 					"p-2 px-4 rounded-full text-sm dark:text-gray-200",
-					!isBot && "bg-primary/10 ml-auto w-fit max-w-[200px]",
-					isBot && "flex flex-row gap-4",
+					!isBot && "bg-primary/10 ml-auto w-fit max-w-[200px] md:max-w-[50%]",
+					isBot && "flex flex-row gap-4 max-w-[200px] md:max-w-[70%]",
 				)}
 			>
 				{isBot && (
@@ -91,7 +94,7 @@ export default function ChatBubble({
 						collapsible
 						className={cn(
 							"bg-dark/10 dark:bg-white/10 rounded-lg my-2",
-							!containsReasoning && "hidden",
+							!showReasoning && "hidden",
 						)}
 						defaultValue={message.id}
 					>
