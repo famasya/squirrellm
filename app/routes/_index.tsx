@@ -73,7 +73,6 @@ export default function AppHome() {
 	});
 	const navigation = useNavigation();
 	const submit = useSubmit();
-	console.log(newSession, 321);
 
 	return (
 		<div className="flex h-full items-center justify-center">
@@ -138,6 +137,7 @@ export default function AppHome() {
 
 						<Button
 							type="submit"
+							size="sm"
 							disabled={
 								availableProfiles.length === 0 ||
 								newSession.message.length === 0

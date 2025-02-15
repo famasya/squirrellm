@@ -36,7 +36,7 @@ export const links: LinksFunction = () => [
 ];
 export const meta: MetaFunction = () => [
 	{
-		title: "OpenRouter Chat",
+		title: "Squirrellm",
 	},
 ];
 

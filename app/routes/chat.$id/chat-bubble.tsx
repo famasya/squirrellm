@@ -1,7 +1,7 @@
 import TeX from "@matejmazur/react-katex";
 import type { UseChatHelpers } from "ai/react";
-import { format } from "date-fns";
-import { Squirrel } from "lucide-react";
+import { format, formatDuration } from "date-fns";
+import { RefreshCcw, Squirrel } from "lucide-react";
 import Markdown, { RuleType } from "markdown-to-jsx";
 import {
 	Accordion,
@@ -20,7 +20,7 @@ type Props = {
 	ref?: React.RefObject<HTMLDivElement>;
 	message: UseChatHelpers["messages"][0];
 	isLastMessage: boolean;
-	retryAction: () => void;
+	regenerate: () => void;
 };
 
 export default function ChatBubble({
@@ -29,18 +29,21 @@ export default function ChatBubble({
 	ref,
 	message,
 	isLastMessage,
-	retryAction,
+	regenerate,
 }: Props) {
 	const { messageStatus } = useChatStore();
 	const isThinking = isLastMessage && messageStatus?.status === "thinking";
 	const isFailed =
 		messageStatus?.messageId === message.id &&
 		messageStatus.status === "failed";
-	const prevMessageStatus = message.annotations?.[0] as
-		| { isSent?: boolean }
-		| undefined;
-	const containsReasoning =
-		message.parts.find((part) => part.type === "reasoning") !== undefined;
+	const containsReasoning = message.parts.find(
+		(part) => part.type === "reasoning",
+	);
+	const showReasoning =
+		containsReasoning && containsReasoning.reasoning.length > 5 && isBot;
+	const { executionTime } = message.annotations?.[0] as {
+		executionTime: number;
+	};
 
 	return (
 		<div className={cn("my-2", !isBot && "ml-auto text-right")}>
@@ -52,8 +55,8 @@ export default function ChatBubble({
 			<div
 				className={cn(
 					"p-2 px-4 rounded-full text-sm dark:text-gray-200",
-					!isBot && "bg-primary/10 ml-auto w-fit max-w-[200px]",
-					isBot && "flex flex-row gap-4",
+					!isBot && "bg-primary/10 ml-auto w-fit max-w-[200px] md:max-w-[50%]",
+					isBot && "flex flex-row gap-4 max-w-[70%]",
 				)}
 			>
 				{isBot && (
@@ -80,7 +83,9 @@ export default function ChatBubble({
 								</span>
 							) : (
 								<span>
-									at {format(message.createdAt || Date.now(), "HH:mm")}
+									at {format(message.createdAt || Date.now(), "HH:mm")}.
+									Thinking for{" "}
+									{formatDuration({ seconds: executionTime / 1000 })}
 								</span>
 							)}
 						</div>
@@ -91,7 +96,7 @@ export default function ChatBubble({
 						collapsible
 						className={cn(
 							"bg-dark/10 dark:bg-white/10 rounded-lg my-2",
-							!containsReasoning && "hidden",
+							!showReasoning && "hidden",
 						)}
 						defaultValue={message.id}
 					>
@@ -140,21 +145,24 @@ export default function ChatBubble({
 								},
 							}}
 						>
-							{message.content}
+							{isFailed
+								? "Something went wrong. Please try again"
+								: message.content}
 						</Markdown>
 					</div>
 				</div>
 			</div>
-
-			{/* show failed */}
-			{isFailed || prevMessageStatus?.isSent === false ? (
-				<div className="text-xs">
-					Execution failed.{" "}
-					<Button onClick={retryAction} variant={"link"} size={"sm"}>
-						Retry?
-					</Button>{" "}
-				</div>
-			) : null}
+			<div
+				className={cn(
+					"text-sm mt-1",
+					isBot && "ml-16 pl-1",
+					(!isLastMessage || isThinking) && "hidden",
+				)}
+			>
+				<Button variant={"outline"} size={"sm"} onClick={regenerate}>
+					<RefreshCcw /> Regenerate
+				</Button>
+			</div>
 		</div>
 	);
 }
