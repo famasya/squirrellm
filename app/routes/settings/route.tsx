@@ -10,7 +10,7 @@ import {
 import { TwitterSnowflake } from "@sapphire/snowflake";
 import { ne } from "drizzle-orm";
 import { Loader2, Save } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import useSWR from "swr";
 import { GlobalErrorBoundary } from "~/components/global-error-boundary";
@@ -138,9 +138,10 @@ export default function Settings() {
 				: toast.error(actionResult.message);
 		}
 	}, [actionResult]);
+	const pageRef = useRef<HTMLDivElement>(null);
 
 	return (
-		<div className="ml-1 mb-8">
+		<div className="ml-1 mb-8" ref={pageRef}>
 			{location.search.includes("state=onboarding") && (
 				<div className="w-full p-2 rounded-sm mt-4 bg-white/10">
 					<p className="text-sm">
@@ -268,7 +269,11 @@ export default function Settings() {
 			<ProfilesList
 				availableProfiles={availableProfiles}
 				locationKey={location.key}
-				setFormValues={(values) => setFormValues(values)}
+				setFormValues={(values) => {
+					// scroll to ref
+					pageRef.current?.scrollIntoView({ behavior: "instant" });
+					setFormValues(values);
+				}}
 				handleDelete={(id, isDefault) => {
 					submit(
 						{ id, isDefault },

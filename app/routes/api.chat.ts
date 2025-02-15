@@ -23,8 +23,9 @@ export type ChatPayload = {
 };
 
 export type MessageStatus = {
-	status: "thinking" | "done" | "failed";
+	status: "thinking" | "reasoning" | "done" | "failed";
 	messageId: string;
+	text?: string;
 };
 
 export async function action({ request }: ActionFunctionArgs) {
@@ -88,7 +89,7 @@ export async function action({ request }: ActionFunctionArgs) {
 					temperature: Number.parseFloat(temperature),
 					messages,
 					...(instruction && { system: instruction }),
-					onChunk: (chunk) => {
+					onChunk: ({ chunk }) => {
 						dataStream.writeMessageAnnotation({ model: modelId });
 					},
 					onError: async () => {

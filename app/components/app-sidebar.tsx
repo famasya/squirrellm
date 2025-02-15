@@ -51,6 +51,7 @@ export default function AppSidebar() {
 			},
 			{
 				revalidateFirstPage: false,
+				keepPreviousData: true,
 				onError: (error) => {
 					console.error(error);
 					toast.error("Error loading conversations");
@@ -80,12 +81,12 @@ export default function AppSidebar() {
 						<SidebarGroupContent>
 							<SidebarMenu>
 								<SidebarMenuItem>
-									<SidebarMenuButton asChild>
-										<NavLink to="/">
+									<NavLink to="/">
+										<SidebarMenuButton disabled={messageStatus !== null}>
 											<Plus />
 											<span className="w-full">New Chat</span>
-										</NavLink>
-									</SidebarMenuButton>
+										</SidebarMenuButton>
+									</NavLink>
 								</SidebarMenuItem>
 							</SidebarMenu>
 						</SidebarGroupContent>

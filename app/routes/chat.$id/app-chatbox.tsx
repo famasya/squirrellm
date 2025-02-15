@@ -1,5 +1,5 @@
 import type { InferSelectModel } from "drizzle-orm";
-import { Send, StopCircle } from "lucide-react";
+import { Send, StopCircle, UploadCloud } from "lucide-react";
 import { AutosizeTextarea } from "~/components/ui/autosize-textarea";
 import { Button } from "~/components/ui/button";
 import { SearchableSelect } from "~/components/ui/searchable-select";
@@ -7,11 +7,12 @@ import type { profiles } from "~/lib/db.schema";
 import useChatStore from "~/lib/stores";
 
 type Props = {
-	handleSend: () => void;
+	availableProfiles: InferSelectModel<typeof profiles>[];
 	input: string;
 	selectedProfile: string;
-	stop: () => void;
 	id: string;
+	stop: () => void;
+	handleSend: () => void;
 	handleProfileChange: (
 		profileId: string,
 		modelId: string,
@@ -19,7 +20,6 @@ type Props = {
 		instruction: string | null,
 	) => void;
 	handleInputChange: (event: React.ChangeEvent<HTMLTextAreaElement>) => void;
-	availableProfiles: InferSelectModel<typeof profiles>[];
 };
 
 export default function AppChatbox({
@@ -68,6 +68,9 @@ export default function AppChatbox({
 					{/* profile select */}
 					<div className="mt-3 flex items-center justify-between">
 						<div className="flex items-center gap-2 w-1/3">
+							<Button size={"sm"}>
+								<UploadCloud /> Upload
+							</Button>
 							<SearchableSelect
 								className="w-full"
 								value={selectedProfile}
@@ -88,6 +91,7 @@ export default function AppChatbox({
 								onClick={
 									messageStatus?.status === "thinking" ? stop : handleSend
 								}
+								size={"sm"}
 								className="flex items-center justify-center"
 							>
 								{messageStatus?.status === "thinking" ? (

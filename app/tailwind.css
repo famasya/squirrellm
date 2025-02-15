@@ -220,7 +220,7 @@ body {
 	}
 
 	.markdown-content th {
-		@apply bg-gray-100 border border-gray-300 px-4 py-2 text-left font-semibold;
+		@apply bg-black border border-gray-300 px-4 py-2 text-left font-semibold;
 	}
 
 	.markdown-content td {

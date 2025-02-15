@@ -137,6 +137,7 @@ export default function AppHome() {
 
 						<Button
 							type="submit"
+							size="sm"
 							disabled={
 								availableProfiles.length === 0 ||
 								newSession.message.length === 0

@@ -35,11 +35,14 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 export const meta: MetaFunction<typeof loader> = ({ data }) => {
 	return [
 		{
-			title: data?.pageTitle || "Squirrellm",
+			title: `${data?.pageTitle} - Squirrellm` || "Squirrellm",
 		},
 	];
 };
 
+export type FailedMessage = {
+	id: string;
+};
 export default function ChatLayout() {
 	const {
 		profile,
@@ -52,16 +55,18 @@ export default function ChatLayout() {
 
 	// set to default profile
 	const [selectedProfile, selectProfile] = useState<typeof profile>(profile);
+	const [failedMessage, setFailedMessage] = useState<FailedMessage | undefined>(
+		previousMessages.find((message) => message.sent === false),
+	);
 
 	const {
-		messages,
 		input,
 		data,
+		messages,
 		stop,
 		setData,
 		append,
 		reload,
-		setMessages,
 		handleInputChange,
 		handleSubmit,
 	} = useChat({
@@ -86,7 +91,9 @@ export default function ChatLayout() {
 				role: message.role as "assistant" | "user",
 				id: message.id,
 				parts: parts,
-				annotations: [{ model: message.model, isSent: message.sent }],
+				annotations: [
+					{ model: message.model, executionTime: message.executionTime },
+				],
 				createdAt: new Date(message.createdAt),
 			};
 		}),
@@ -105,6 +112,9 @@ export default function ChatLayout() {
 			return payload;
 		},
 		onError: (error) => {
+			setFailedMessage({
+				id: messages[messages.length - 1].id,
+			});
 			console.error(error);
 			toast.error(error.message);
 		},
@@ -135,36 +145,26 @@ export default function ChatLayout() {
 		}
 	});
 
+	const retryAction = () => {
+		setData(undefined);
+		setFailedMessage(undefined);
+		reload();
+	};
+
 	return (
-		<div className="w-full flex flex-col h-full overflow-hidden">
+		<div className="relative w-full flex flex-col h-full overflow-hidden">
 			<MessagesRenderer
-				retryAction={(id) => {
-					setData(undefined);
-					// modify message in client side
-					setMessages((messages) => {
-						return messages.map((message) => {
-							if (message.id === id) {
-								return {
-									...message,
-									annotations: [
-										{
-											model: selectedProfile.modelId,
-											isSent: true,
-										},
-									],
-								};
-							}
-							return message;
-						});
-					});
-					reload();
-				}}
 				messages={messages}
 				selectedModel={selectedProfile.modelId}
+				retryAction={retryAction}
+				failedMessage={failedMessage}
 			/>
 
 			<AppChatbox
 				id={conversationId}
+				input={input}
+				availableProfiles={availableProfiles}
+				selectedProfile={selectedProfile?.id}
 				stop={() => {
 					setData(undefined);
 					stop();
@@ -188,9 +188,6 @@ export default function ChatLayout() {
 						systemMessage: systemMessage,
 					});
 				}}
-				input={input}
-				availableProfiles={availableProfiles}
-				selectedProfile={selectedProfile?.id}
 			/>
 		</div>
 	);

@@ -33,6 +33,7 @@ interface SearchableSelectProps {
 	onChange?: (option: Option) => void;
 	disabled?: boolean;
 	className?: string;
+	trimCharacters?: number;
 }
 
 export function SearchableSelect({
@@ -41,15 +42,22 @@ export function SearchableSelect({
 	emptyMessage = "No results found.",
 	value,
 	onChange,
+	trimCharacters,
 	...props
 }: SearchableSelectProps) {
 	const [open, setOpen] = React.useState(false);
 	const [selectedValue, setSelectedValue] = React.useState(value);
 
 	const placeholderValue = React.useMemo(() => {
-		const label = options.find((option) => option.value === value)?.label;
-		return label && label.length > 30 ? `${label.substring(0, 30)}...` : label;
-	}, [options, value]);
+		const label = options.find((option) => option.value === value)
+			?.label as string;
+		if (trimCharacters) {
+			return label.length > trimCharacters
+				? `${label.substring(0, trimCharacters)}...`
+				: label;
+		}
+		return label;
+	}, [options, value, trimCharacters]);
 
 	return (
 		<Popover open={open} onOpenChange={setOpen}>

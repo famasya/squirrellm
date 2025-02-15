@@ -1,18 +1,22 @@
 import type { UseChatHelpers } from "ai/react";
 import { format } from "date-fns";
 import { useEffect, useRef } from "react";
+import { Button } from "~/components/ui/button";
 import { cn } from "~/lib/utils";
 import ChatBubble from "./chat-bubble";
+import type { FailedMessage } from "./route";
 
 type Props = {
 	messages: UseChatHelpers["messages"];
 	selectedModel: string;
-	retryAction: (id: string) => void;
+	retryAction: () => void;
+	failedMessage?: FailedMessage;
 };
 export default function MessagesRenderer({
 	messages,
 	selectedModel,
 	retryAction,
+	failedMessage,
 }: Props) {
 	const scrollRef = useRef<HTMLDivElement>(null);
 	const lastMessageRef = useRef<HTMLDivElement>(null);
@@ -35,6 +39,23 @@ export default function MessagesRenderer({
 
 	return (
 		<>
+			<div className="absolute bottom-28 w-full px-2">
+				<div
+					className={cn(
+						"text-right mb-1 text-sm bg-red-800 px-4 py-1 rounded",
+						!failedMessage && "hidden",
+					)}
+				>
+					Last message was failed.{" "}
+					<Button
+						className="h-4 px-4 py-3 text-sm bg-white/20 hover:bg-white/30"
+						variant={"destructive"}
+						onClick={retryAction}
+					>
+						Retry?
+					</Button>
+				</div>
+			</div>
 			<div
 				className="px-0 pr-2 md:px-3 pt-2 flex-1 overflow-auto"
 				ref={scrollRef}
@@ -53,13 +74,19 @@ export default function MessagesRenderer({
 						const isLastMessage = index === messages.length - 1;
 
 						return (
-							<div key={message.id} className={cn(isLastMessage && "mb-8")}>
+							<div
+								key={message.id}
+								className={cn(
+									isLastMessage && "mb-8",
+									isLastMessage && failedMessage && "mb-12",
+								)}
+							>
 								<ChatBubble
+									regenerate={retryAction}
 									model={messageModelUsed?.model || selectedModel}
 									isBot={message.role === "assistant"}
 									message={message}
 									isLastMessage={isLastMessage}
-									retryAction={() => retryAction(message.id)}
 								/>
 							</div>
 						);
