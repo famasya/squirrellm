@@ -15,6 +15,10 @@ COPY --from=0 /app/package.json ./
 COPY --from=0 /app/bun.lock ./
 COPY --from=0 /app/drizzle.config.ts ./
 COPY --from=0 /app/drizzle ./drizzle 
+
+# Create the data directory and SQLite file
+RUN mkdir -p /app/data && touch /app/data/squirrellm.sqlite
+
 RUN bun install --production
 
 EXPOSE 3000
