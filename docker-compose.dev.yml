@@ -1,6 +1,8 @@
 services:
   app:
-    image: abidfamasya/squirrellm:latest
+    build:
+      context: ./
+      dockerfile: .build/Dockerfile
     ports: 
       - 3000:3000
     environment:
