@@ -1,6 +1,7 @@
 import type { UseChatHelpers } from "ai/react";
 import { format } from "date-fns";
-import { useEffect, useRef } from "react";
+import { debounce } from "es-toolkit";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { Button } from "~/components/ui/button";
 import { cn } from "~/lib/utils";
 import ChatBubble from "./chat-bubble";
@@ -21,21 +22,59 @@ export default function MessagesRenderer({
 	const scrollRef = useRef<HTMLDivElement>(null);
 	const lastMessageRef = useRef<HTMLDivElement>(null);
 
+	const scrollToBottom = useCallback(() => {
+		if (lastMessageRef.current) {
+			lastMessageRef.current.scrollIntoView({ behavior: "instant" });
+		}
+	}, []);
+
+	const debouncedScrollToBottom = useMemo(
+		() => debounce(scrollToBottom, 500),
+		[scrollToBottom]
+	);
+
 	// scroll to bottom when messages change
 	useEffect(() => {
 		if (messages.length > 0) {
-			const scrollToBottom = () => {
-				if (lastMessageRef.current) {
-					lastMessageRef.current.scrollIntoView({ behavior: "instant" });
-				}
-			};
 			scrollToBottom();
 
 			// Also scroll when messages are still streaming
-			const timer = setTimeout(scrollToBottom, 500);
-			return () => clearTimeout(timer);
+			debouncedScrollToBottom();
+			return () => debouncedScrollToBottom.cancel();
 		}
-	}, [messages]);
+	}, [messages, scrollToBottom, debouncedScrollToBottom]);
+
+	const handleRetry = useCallback(() => {
+		retryAction();
+	}, [retryAction]);
+
+	const Row = useCallback(
+		({ index, style }: { index: number; style: React.CSSProperties }) => {
+			const message = messages[index];
+			const messageModelUsed = message.annotations?.[0] as
+				| undefined
+				| { model: string };
+			const isLastMessage = index === messages.length - 1;
+
+			const memoizedMessage = useMemo(() => message, [message]);
+
+			return (
+				<div key={memoizedMessage.id} style={style} className={cn(
+					isLastMessage && "mb-8",
+					isLastMessage && failedMessage && "mb-12",
+				)}>
+					<ChatBubble
+						regenerate={handleRetry}
+						model={messageModelUsed?.model || selectedModel}
+						isBot={memoizedMessage.role === "assistant"}
+						message={memoizedMessage}
+						isLastMessage={isLastMessage}
+					/>
+				</div>
+			);
+		},
+		[selectedModel, failedMessage, handleRetry, messages]
+	);
 
 	return (
 		<>
@@ -50,14 +89,14 @@ export default function MessagesRenderer({
 					<Button
 						className="h-4 px-4 py-3 text-sm bg-white/20 hover:bg-white/30"
 						variant={"destructive"}
-						onClick={retryAction}
+						onClick={handleRetry}
 					>
 						Retry?
 					</Button>
 				</div>
 			</div>
 			<div
-				className="px-0 pr-2 md:px-3 pt-2 flex-1 overflow-auto"
+				className="px-0 pr-2 md:px-3 pt-2 flex-1 overflow-auto mt-2"
 				ref={scrollRef}
 			>
 				<div className="min-h-[100%]">

@@ -1,5 +1,6 @@
 import type { InferSelectModel } from "drizzle-orm";
 import { Send, StopCircle, UploadCloud } from "lucide-react";
+import { useCallback, useMemo } from "react";
 import { AutosizeTextarea } from "~/components/ui/autosize-textarea";
 import { Button } from "~/components/ui/button";
 import { SearchableSelect } from "~/components/ui/searchable-select";
@@ -33,6 +34,7 @@ export default function AppChatbox({
 	handleProfileChange,
 }: Props) {
 	const { messageStatus } = useChatStore();
+
 	const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
 		if (event.key === "Enter" && !event.shiftKey) {
 			event.preventDefault();
@@ -40,17 +42,38 @@ export default function AppChatbox({
 		}
 	};
 
-	const onProfileChange = (option: { value: string; label: string }) => {
-		const selectedProfile = availableProfiles.find(
-			(m) => m.id === option.value,
-		) as InferSelectModel<typeof profiles>;
-		handleProfileChange(
-			selectedProfile.id,
-			selectedProfile.modelId,
-			selectedProfile.temperature,
-			selectedProfile.systemMessage,
-		);
-	};
+	const onProfileChange = useCallback(
+		(option: { value: string; label: string }) => {
+			const selectedProfile = availableProfiles.find(
+				(m) => m.id === option.value,
+			) as InferSelectModel<typeof profiles>;
+			handleProfileChange(
+				selectedProfile.id,
+				selectedProfile.modelId,
+				selectedProfile.temperature,
+				selectedProfile.systemMessage,
+			);
+		},
+		[availableProfiles, handleProfileChange],
+	);
+
+	const options = useMemo(
+		() =>
+			availableProfiles.map((profile) => ({
+				value: profile.id,
+				label: profile.name,
+				description: profile.modelId.split("/")[1],
+			})),
+		[availableProfiles],
+	);
+
+	const handleButtonClick = useCallback(() => {
+		if (messageStatus?.status === "thinking") {
+			stop();
+		} else {
+			handleSend();
+		}
+	}, [messageStatus, stop, handleSend]);
 
 	return (
 		<div key={id} className="relative">
@@ -74,11 +97,7 @@ export default function AppChatbox({
 							<SearchableSelect
 								className="w-full"
 								value={selectedProfile}
-								options={availableProfiles.map((profile) => ({
-									value: profile.id,
-									label: profile.name,
-									description: profile.modelId.split("/")[1],
-								}))}
+								options={options}
 								onChange={onProfileChange}
 								placeholder="Select a profile"
 							/>
@@ -88,9 +107,7 @@ export default function AppChatbox({
 						<div className="flex items-center gap-2">
 							<Button
 								disabled={input === "" && messageStatus === null}
-								onClick={
-									messageStatus?.status === "thinking" ? stop : handleSend
-								}
+								onClick={handleButtonClick}
 								size={"sm"}
 								className="flex items-center justify-center"
 							>

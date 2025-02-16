@@ -10,7 +10,7 @@ import {
 import { TwitterSnowflake } from "@sapphire/snowflake";
 import { ne } from "drizzle-orm";
 import { Loader2, Save } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import useSWR from "swr";
 import { GlobalErrorBoundary } from "~/components/global-error-boundary";
@@ -91,6 +91,7 @@ export default function Settings() {
 	const submit = useSubmit();
 	const actionResult = useActionData<typeof action>();
 
+	const lastActionResult = useRef<typeof actionResult | null>(null);
 	const { data: openrouterModels, isLoading } = useSWR(
 		"https://openrouter.ai/api/v1/models",
 		async (url) => {
@@ -107,6 +108,11 @@ export default function Settings() {
 	);
 
 	const { availableProfiles } = useLoaderData<typeof loader>();
+	const memoizedAvailableProfiles = useMemo(
+		() => availableProfiles,
+		[availableProfiles],
+	);
+
 	const [formValues, setFormValues] = useState({
 		id: "",
 		modelId: "",
@@ -119,26 +125,115 @@ export default function Settings() {
 	// reset state
 	useEffect(() => {
 		if (location.key) {
-			setFormValues({
-				id: "",
-				modelId: "",
-				name: "",
-				systemMessage: "",
-				metadata: "{}",
-				isDefault: availableProfiles.length === 0,
-			});
+			const shouldReset =
+				formValues.id !== "" ||
+				formValues.modelId !== "" ||
+				formValues.name !== "" ||
+				formValues.systemMessage !== "" ||
+				formValues.metadata !== "{}" ||
+				formValues.isDefault !== (memoizedAvailableProfiles.length === 0);
+
+			if (shouldReset) {
+				setFormValues({
+					id: "",
+					modelId: "",
+					name: "",
+					systemMessage: "",
+					metadata: "{}",
+					isDefault: memoizedAvailableProfiles.length === 0,
+				});
+			}
 		}
-	}, [location, availableProfiles]);
+	}, [location.key, memoizedAvailableProfiles, formValues]);
 
 	// show action result
 	useEffect(() => {
-		if (actionResult) {
-			actionResult.success
-				? toast.success(actionResult.message)
-				: toast.error(actionResult.message);
+		if (actionResult && lastActionResult.current !== actionResult) {
+			if (actionResult.success) {
+				toast.success(actionResult.message);
+			} else {
+				toast.error(actionResult.message);
+			}
+			lastActionResult.current = actionResult;
 		}
 	}, [actionResult]);
+
 	const pageRef = useRef<HTMLDivElement>(null);
+
+	const handleNameChange = useCallback(
+		(e: React.ChangeEvent<HTMLInputElement>) => {
+			setFormValues((prev) => ({ ...prev, name: e.target.value }));
+		},
+		[],
+	);
+
+	const handleSystemMessageChange = useCallback(
+		(e: React.ChangeEvent<HTMLTextAreaElement>) => {
+			setFormValues((prev) => ({ ...prev, systemMessage: e.target.value }));
+		},
+		[],
+	);
+
+	const handleModelChange = useCallback(
+		(option: { value: string; label: string }) => {
+			const metadata = openrouterModels?.find(
+				(model) => model.id === option.value,
+			) as object;
+			setFormValues((prev) => ({
+				...prev,
+				modelId: option.value,
+				metadata: JSON.stringify(metadata),
+			}));
+		},
+		[openrouterModels],
+	);
+
+	const memoizedOptions = useMemo(
+		() =>
+			openrouterModels?.map((model) => ({
+				value: model.id,
+				label: model.name,
+			})) || [],
+		[openrouterModels],
+	);
+
+	const handleDefaultChange = useCallback(
+		(value: boolean) => {
+			setFormValues((prev) => ({ ...prev, isDefault: value }));
+		},
+		[],
+	);
+
+	const handleSave = useCallback(() => {
+		submit(formValues, {
+			method: "post",
+			encType: "application/json",
+			action: "/settings?action=upsert",
+		});
+	}, [submit, formValues]);
+
+	const memoizedSetFormValues = useCallback(
+		(values: typeof formValues) => {
+			// scroll to ref
+			pageRef.current?.scrollIntoView({ behavior: "instant" });
+			setFormValues(values);
+		},
+		[],
+	);
+
+	const memoizedHandleDelete = useCallback(
+		(id: string, isDefault: boolean) => {
+			submit(
+				{ id, isDefault },
+				{
+					method: "post",
+					encType: "application/json",
+					action: "/settings?action=delete",
+				},
+			);
+		},
+		[submit],
+	);
 
 	return (
 		<div className="ml-1 mb-8" ref={pageRef}>
@@ -165,24 +260,10 @@ export default function Settings() {
 						</Label>
 						<SearchableSelect
 							disabled={isLoading || navigation.state === "submitting"}
-							onChange={(option) => {
-								const metadata = openrouterModels?.find(
-									(model) => model.id === option.value,
-								) as object;
-								setFormValues({
-									...formValues,
-									modelId: option.value,
-									metadata: JSON.stringify(metadata),
-								});
-							}}
+							onChange={handleModelChange}
 							placeholder="Select a model"
 							value={formValues.modelId}
-							options={
-								openrouterModels?.map((model) => ({
-									value: model.id,
-									label: model.name,
-								})) || []
-							}
+							options={memoizedOptions}
 						/>
 					</div>
 
@@ -194,9 +275,7 @@ export default function Settings() {
 							name="name"
 							id="name"
 							value={formValues.name}
-							onChange={(e) =>
-								setFormValues({ ...formValues, name: e.target.value })
-							}
+							onChange={handleNameChange}
 							placeholder="i.e. Coder Wizard"
 						/>
 					</div>
@@ -211,9 +290,7 @@ export default function Settings() {
 							}
 							id="instruction"
 							value={formValues.systemMessage}
-							onChange={(e) =>
-								setFormValues({ ...formValues, systemMessage: e.target.value })
-							}
+							onChange={handleSystemMessageChange}
 							placeholder="e.g. You are an expert assistant in legal field..."
 						/>
 					</div>
@@ -229,9 +306,7 @@ export default function Settings() {
 									navigation.state === "submitting" ||
 									availableProfiles.length === 0 // if only one profile, it is default
 								}
-								onCheckedChange={(value) =>
-									setFormValues({ ...formValues, isDefault: value === true })
-								}
+								onCheckedChange={handleDefaultChange}
 								checked={formValues.isDefault}
 							/>
 						</div>
@@ -244,13 +319,7 @@ export default function Settings() {
 								formValues.name === "" ||
 								navigation.state === "submitting"
 							}
-							onClick={() => {
-								submit(formValues, {
-									method: "post",
-									encType: "application/json",
-									action: "/settings?action=upsert",
-								});
-							}}
+							onClick={handleSave}
 						>
 							{navigation.state === "submitting" ? (
 								<>
@@ -267,23 +336,10 @@ export default function Settings() {
 			</div>
 
 			<ProfilesList
-				availableProfiles={availableProfiles}
+				availableProfiles={memoizedAvailableProfiles}
 				locationKey={location.key}
-				setFormValues={(values) => {
-					// scroll to ref
-					pageRef.current?.scrollIntoView({ behavior: "instant" });
-					setFormValues(values);
-				}}
-				handleDelete={(id, isDefault) => {
-					submit(
-						{ id, isDefault },
-						{
-							method: "post",
-							encType: "application/json",
-							action: "/settings?action=delete",
-						},
-					);
-				}}
+				setFormValues={memoizedSetFormValues}
+				handleDelete={memoizedHandleDelete}
 			/>
 		</div>
 	);

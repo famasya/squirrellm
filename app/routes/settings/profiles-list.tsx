@@ -1,6 +1,7 @@
 import { Form } from "@remix-run/react";
 import type { InferSelectModel } from "drizzle-orm";
 import { Edit, Trash } from "lucide-react";
+import { memo } from "react";
 import { Button } from "~/components/ui/button";
 import type { profiles } from "~/lib/db.schema";
 
@@ -18,7 +19,7 @@ type Props = {
 	handleDelete: (id: string, isDefault: boolean) => void;
 };
 
-export default function ProfilesList({
+const MemoizedProfilesList = memo(function ProfilesList({
 	availableProfiles,
 	locationKey,
 	setFormValues,
@@ -96,4 +97,6 @@ export default function ProfilesList({
 			)}
 		</>
 	);
-}
+});
+
+export default MemoizedProfilesList;

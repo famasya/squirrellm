@@ -2,7 +2,8 @@ import TeX from "@matejmazur/react-katex";
 import type { UseChatHelpers } from "ai/react";
 import { format, formatDuration } from "date-fns";
 import { RefreshCcw, Squirrel } from "lucide-react";
-import Markdown, { RuleType } from "markdown-to-jsx";
+import Markdown, { MarkdownToJSX, RuleType } from "markdown-to-jsx";
+import { useCallback, useMemo } from "react";
 import {
 	Accordion,
 	AccordionContent,
@@ -21,6 +22,18 @@ type Props = {
 	message: UseChatHelpers["messages"][0];
 	isLastMessage: boolean;
 	regenerate: () => void;
+};
+
+// Move renderRule outside the component to ensure it's stable across renders
+const renderRule: MarkdownToJSX.Options["renderRule"] = (next, node, _, state) => {
+	if (node.type === RuleType.codeBlock && node.lang === "latex") {
+		return (
+			<TeX as="div" key={state.key}>
+				{String.raw`${node.text}`}
+			</TeX>
+		);
+	}
+	return next();
 };
 
 export default function ChatBubble({
@@ -44,6 +57,20 @@ export default function ChatBubble({
 	const { executionTime } = message.annotations?.[0] as {
 		executionTime: number;
 	};
+
+	// Memoize the options object to prevent unnecessary rerenders
+	const markdownOptions = useMemo(
+		() => ({
+			forceBlock: true,
+			renderRule,
+		}),
+		[]
+	);
+
+	// Create a stable handler for the regenerate function
+	const handleRegenerate = useCallback(() => {
+		regenerate();
+	}, [regenerate]);
 
 	return (
 		<div className={cn("my-2", !isBot && "ml-auto text-right")}>
@@ -127,23 +154,7 @@ export default function ChatBubble({
 					<div ref={ref}>
 						<Markdown
 							className="markdown-content"
-							options={{
-								forceBlock: true,
-								renderRule(next, node, renderChildren, state) {
-									if (
-										node.type === RuleType.codeBlock &&
-										node.lang === "latex"
-									) {
-										return (
-											<TeX
-												as="div"
-												key={state.key}
-											>{String.raw`${node.text}`}</TeX>
-										);
-									}
-									return next();
-								},
-							}}
+							options={markdownOptions}
 						>
 							{isFailed
 								? "Something went wrong. Please try again"
@@ -159,7 +170,7 @@ export default function ChatBubble({
 					(!isLastMessage || isThinking) && "hidden",
 				)}
 			>
-				<Button variant={"outline"} size={"sm"} onClick={regenerate}>
+				<Button variant={"outline"} size={"sm"} onClick={handleRegenerate}>
 					<RefreshCcw /> Regenerate
 				</Button>
 			</div>

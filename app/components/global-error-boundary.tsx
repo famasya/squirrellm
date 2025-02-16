@@ -1,7 +1,8 @@
 import { isRouteErrorResponse, useRouteError } from "@remix-run/react";
 import { CircleAlert } from "lucide-react";
+import { memo } from "react";
 
-export function GlobalErrorBoundary() {
+export const GlobalErrorBoundary = memo(function GlobalErrorBoundary() {
 	const error = useRouteError();
 	let errorMessage = String(error);
 	if (error instanceof Error) {
@@ -20,4 +21,4 @@ export function GlobalErrorBoundary() {
 			</div>
 		</div>
 	);
-}
+});

@@ -1,6 +1,6 @@
 import { useNavigate } from "@remix-run/react";
 import { Loader2, MoreHorizontal, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { memo, useMemo, useState } from "react";
 import { toast } from "sonner";
 import useSWRMutation from "swr/mutation";
 import useChatStore from "~/lib/stores";
@@ -26,7 +26,7 @@ type Props = {
 	id: string;
 	disabled: boolean;
 };
-export default function ConversationOptions({ id, disabled }: Props) {
+function ConversationOptions({ id, disabled }: Props) {
 	const [open, setOpen] = useState(false);
 	const navigate = useNavigate();
 	const { refreshConversationsList } = useChatStore();
@@ -56,24 +56,28 @@ export default function ConversationOptions({ id, disabled }: Props) {
 		},
 	);
 
+	const memoizedDropdownMenu = useMemo(() => (
+		<DropdownMenu>
+			<DropdownMenuTrigger
+				disabled={disabled}
+				asChild
+				className="cursor-default"
+			>
+				<SidebarMenuAction>
+					<MoreHorizontal />
+				</SidebarMenuAction>
+			</DropdownMenuTrigger>
+			<DropdownMenuContent side="right" align="start">
+				<DropdownMenuItem onClick={() => setOpen(!open)}>
+					<Trash2 /> Delete conversation
+				</DropdownMenuItem>
+			</DropdownMenuContent>
+		</DropdownMenu>
+	), [disabled, open]);
+
 	return (
 		<>
-			<DropdownMenu>
-				<DropdownMenuTrigger
-					disabled={disabled}
-					asChild
-					className="cursor-default"
-				>
-					<SidebarMenuAction>
-						<MoreHorizontal />
-					</SidebarMenuAction>
-				</DropdownMenuTrigger>
-				<DropdownMenuContent side="right" align="start">
-					<DropdownMenuItem onClick={() => setOpen(!open)}>
-						<Trash2 /> Delete conversation
-					</DropdownMenuItem>
-				</DropdownMenuContent>
-			</DropdownMenu>
+			{memoizedDropdownMenu}
 
 			<AlertDialog open={open}>
 				<AlertDialogContent>
@@ -112,3 +116,6 @@ export default function ConversationOptions({ id, disabled }: Props) {
 		</>
 	);
 }
+
+export default memo(ConversationOptions);
+

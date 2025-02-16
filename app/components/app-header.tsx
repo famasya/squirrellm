@@ -1,10 +1,11 @@
 import { UserButton } from "@clerk/remix";
 import { Link } from "@remix-run/react";
 import { SidebarIcon } from "lucide-react";
+import { memo } from "react";
 import { Button } from "~/components/ui/button";
 import { useSidebar } from "~/components/ui/sidebar";
 
-export default function AppHeader() {
+function AppHeader() {
 	const { toggleSidebar } = useSidebar();
 	const userButtonAppearance = {
 		elements: {
@@ -30,3 +31,5 @@ export default function AppHeader() {
 		</div>
 	);
 }
+
+export default memo(AppHeader)

@@ -2,7 +2,7 @@ import type { LoaderFunctionArgs, MetaFunction } from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
 import { TwitterSnowflake } from "@sapphire/snowflake";
 import { type Message, useChat } from "ai/react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { GlobalErrorBoundary } from "~/components/global-error-boundary";
 import useChatStore from "~/lib/stores";
@@ -145,11 +145,26 @@ export default function ChatLayout() {
 		}
 	});
 
-	const retryAction = () => {
+	const retryAction = useCallback(() => {
 		setData(undefined);
 		setFailedMessage(undefined);
 		reload();
-	};
+	}, [setData, reload, setFailedMessage]);
+
+	const stopAction = useCallback(() => {
+		setData(undefined);
+		stop()
+	}, [setData, stop]);
+
+	const handleChangeProfile = useCallback((profileId: string, modelId: string, temperature: string, systemMessage: string | null) => {
+		selectProfile({
+			...selectedProfile,
+			id: profileId,
+			modelId: modelId,
+			temperature: temperature,
+			systemMessage: systemMessage,
+		});
+	}, [selectedProfile, selectProfile]);
 
 	return (
 		<div className="relative w-full flex flex-col h-full overflow-hidden">
@@ -165,29 +180,13 @@ export default function ChatLayout() {
 				input={input}
 				availableProfiles={availableProfiles}
 				selectedProfile={selectedProfile?.id}
-				stop={() => {
-					setData(undefined);
-					stop();
-				}}
+				stop={stopAction}
 				handleInputChange={handleInputChange}
 				handleSend={() => {
 					setData(undefined);
 					handleSubmit();
 				}}
-				handleProfileChange={(
-					profileId,
-					modelId,
-					temperature,
-					systemMessage,
-				) => {
-					selectProfile({
-						...selectedProfile,
-						id: profileId,
-						modelId: modelId,
-						temperature: temperature,
-						systemMessage: systemMessage,
-					});
-				}}
+				handleProfileChange={handleChangeProfile}
 			/>
 		</div>
 	);

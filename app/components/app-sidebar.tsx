@@ -1,7 +1,7 @@
 import { NavLink, useNavigation, useParams } from "@remix-run/react";
 import type { InferSelectModel } from "drizzle-orm";
 import { CircleEllipsis, MessageSquare, Plus, Settings } from "lucide-react";
-import { useEffect, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import useSWRInfinite from "swr/infinite";
 import {
@@ -29,7 +29,7 @@ type ConversationsResponse = {
 	cursor: string | null;
 };
 
-export default function AppSidebar() {
+const AppSidebar = memo(function AppSidebar() {
 	const params = useParams();
 	const [nextCursor, setNextCursor] = useState<string | null>(null);
 	const { state } = useSidebar();
@@ -60,7 +60,7 @@ export default function AppSidebar() {
 		);
 	const { messageStatus } = useChatStore();
 
-	// revalidate all on navigation state or refreshConversationsListKey change
+	// Revalidate all on navigation state or refreshConversationsListKey change
 	useEffect(() => {
 		if (navigation.state !== "idle" || refreshConversationsListKey) {
 			mutate(undefined, {
@@ -69,8 +69,16 @@ export default function AppSidebar() {
 		}
 	}, [navigation.state, mutate, refreshConversationsListKey]);
 
-	const conversations = data?.flat();
-	const isActive = (id: string) => params.id === id;
+	const conversations = useMemo(() => data?.flat(), [data]);
+
+	const isActive = useCallback(
+		(id: string) => params.id === id,
+		[params.id]
+	);
+
+	const loadMore = useCallback(() => {
+		setSize((prevSize) => prevSize + 1);
+	}, [setSize]);
 
 	return (
 		<>
@@ -98,44 +106,44 @@ export default function AppSidebar() {
 							<SidebarMenu>
 								{isLoading && !isValidating
 									? Array(3)
-											.fill(0)
-											.map((_, i) => (
-												<SidebarMenuItem key={i.toString()}>
-													<Skeleton className="h-6 w-full mb-2" />
-												</SidebarMenuItem>
-											))
-									: conversations?.map((conversation) => (
-											<SidebarMenuItem key={conversation.id}>
-												<NavLink to={`/chat/${conversation.id}`}>
-													<SidebarMenuButton
-														disabled={messageStatus !== null}
-														className={cn(
-															isActive(conversation.id) &&
-																"bg-sidebar-accent text-sidebar-accent-foreground",
-														)}
-													>
-														<div className="flex flex-row gap-2 items-center w-full">
-															<div>
-																<MessageSquare className="w-4 h-4" />
-															</div>
-															<div className="w-full">
-																{conversation.name.length < 20
-																	? conversation.name
-																	: `${conversation.name.slice(0, 20)}...`}
-															</div>
-														</div>
-													</SidebarMenuButton>
-												</NavLink>
-												<ConversationOptions
-													disabled={messageStatus !== null}
-													id={conversation.id}
-												/>
+										.fill(0)
+										.map((_, i) => (
+											<SidebarMenuItem key={i.toString()}>
+												<Skeleton className="h-6 w-full mb-2" />
 											</SidebarMenuItem>
-										))}
+										))
+									: conversations?.map((conversation) => (
+										<SidebarMenuItem key={conversation.id}>
+											<NavLink to={`/chat/${conversation.id}`}>
+												<SidebarMenuButton
+													disabled={messageStatus !== null}
+													className={cn(
+														isActive(conversation.id) &&
+														"bg-sidebar-accent text-sidebar-accent-foreground",
+													)}
+												>
+													<div className="flex flex-row gap-2 items-center w-full">
+														<div>
+															<MessageSquare className="w-4 h-4" />
+														</div>
+														<div className="w-full">
+															{conversation.name.length < 20
+																? conversation.name
+																: `${conversation.name.slice(0, 20)}...`}
+														</div>
+													</div>
+												</SidebarMenuButton>
+											</NavLink>
+											<ConversationOptions
+												disabled={messageStatus !== null}
+												id={conversation.id}
+											/>
+										</SidebarMenuItem>
+									))}
 								<SidebarMenuItem className="mt-1">
 									<SidebarMenuButton
 										disabled={!nextCursor}
-										onClick={() => setSize(size + 1)}
+										onClick={loadMore}
 									>
 										<span className="w-full flex flex-row gap-2 items-center justify-center">
 											{nextCursor ? (
@@ -165,4 +173,6 @@ export default function AppSidebar() {
 			</Sidebar>
 		</>
 	);
-}
+});
+
+export default memo(AppSidebar)

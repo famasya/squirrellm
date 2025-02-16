@@ -46,8 +46,10 @@ export function SearchableSelect({
 	const [open, setOpen] = React.useState(false);
 	const [selectedValue, setSelectedValue] = React.useState(value);
 
+	const memoizedOptions = React.useMemo(() => options, [options]);
+
 	const placeholderValue = React.useMemo(() => {
-		const label = options.find((option) => option.value === value)
+		const label = memoizedOptions.find((option) => option.value === value)
 			?.label as string;
 		if (trimCharacters) {
 			return label.length > trimCharacters
@@ -55,7 +57,7 @@ export function SearchableSelect({
 				: label;
 		}
 		return label;
-	}, [options, value, trimCharacters]);
+	}, [memoizedOptions, value, trimCharacters]);
 
 	return (
 		<Popover open={open} onOpenChange={setOpen}>
@@ -77,14 +79,14 @@ export function SearchableSelect({
 					<CommandList className="w-full">
 						<CommandEmpty>{emptyMessage}</CommandEmpty>
 						<CommandGroup className="w-full">
-							{options.map((option) => (
+							{memoizedOptions.map((option) => (
 								<CommandItem
 									key={option.value}
 									value={option.value}
 									onSelect={(currentValue: string) => {
 										setSelectedValue(currentValue);
 										onChange?.(
-											options.find((o) => o.value === currentValue) as Option,
+											memoizedOptions.find((o) => o.value === currentValue) as Option,
 										);
 										setOpen(false);
 									}}
