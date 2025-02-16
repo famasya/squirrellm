@@ -1,6 +1,8 @@
 # squirrellm
 
-Openrouter Chat Client. **Work in Progress. Expect errors.**
+Lightweight Openrouter Chat Client. 
+
+> **Work in Progress. Expect errors.**
 
 ## Run
 ```bash
