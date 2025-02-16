@@ -92,7 +92,7 @@ export default function ChatLayout() {
 				id: message.id,
 				parts: parts,
 				annotations: [
-					{ model: message.model, executionTime: message.executionTime },
+					{ model: message.model, executionTime: message?.executionTime || 0 },
 				],
 				createdAt: new Date(message.createdAt),
 			};

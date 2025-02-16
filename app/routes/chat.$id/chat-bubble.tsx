@@ -3,6 +3,7 @@ import type { UseChatHelpers } from "ai/react";
 import { format, formatDuration } from "date-fns";
 import { RefreshCcw, Squirrel } from "lucide-react";
 import Markdown, { RuleType } from "markdown-to-jsx";
+import { useMemo } from "react";
 import {
 	Accordion,
 	AccordionContent,
@@ -41,9 +42,14 @@ export default function ChatBubble({
 	);
 	const showReasoning =
 		containsReasoning && containsReasoning.reasoning.length > 5 && isBot;
-	const { executionTime } = message.annotations?.[0] as {
-		executionTime: number;
-	};
+	const annotations = message.annotations?.[0];
+	const executionTime = useMemo(() => {
+		if (annotations) {
+			const { executionTime } = annotations as { executionTime: number };
+			return executionTime;
+		}
+		return 0;
+	}, [annotations]);
 
 	return (
 		<div className={cn("my-2", !isBot && "ml-auto text-right")}>
@@ -156,11 +162,16 @@ export default function ChatBubble({
 				className={cn(
 					"text-sm mt-1",
 					isBot && "ml-16 pl-1",
-					(!isLastMessage || isThinking) && "hidden",
+					(!isLastMessage || isThinking || isFailed) && "hidden",
 				)}
 			>
-				<Button variant={"outline"} size={"sm"} onClick={regenerate}>
-					<RefreshCcw /> Regenerate
+				<Button
+					variant={"outline"}
+					size={"sm"}
+					onClick={regenerate}
+					disabled={isThinking}
+				>
+					<RefreshCcw /> {isThinking ? "Regenerating..." : "Regenerate"}
 				</Button>
 			</div>
 		</div>
