@@ -4,6 +4,11 @@ Lightweight Openrouter Chat Client.
 
 > **Work in Progress. Expect errors.**
 
+## Preparation
+1. [Clerk](https://clerk.com) : `CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY` for authentication
+2. [Openrouter](https://openrouter.ai) API Key
+3. [Turso](https://turso.tech) (optional)
+
 ## Run
 ```bash
 cp .env.example .env
